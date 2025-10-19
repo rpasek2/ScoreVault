@@ -1,0 +1,100 @@
+{
+  "gymnasts": [
+    {
+      "id": "unique-id-1",
+      "name": "Jane Smith",
+      "dateOfBirth": 1136073600000,
+      "usagNumber": "123456",
+      "level": "Level 7",
+      "discipline": "Womens",
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "unique-id-2",
+      "name": "John Doe",
+      "dateOfBirth": null,
+      "usagNumber": null,
+      "level": "Level 8",
+      "discipline": "Mens",
+      "createdAt": 1704067200000
+    }
+  ],
+  "meets": [
+    {
+      "id": "meet-id-1",
+      "name": "State Championship 2024",
+      "date": 1704585600000,
+      "season": "2023-2024",
+      "location": "Springfield Gym",
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "meet-id-2",
+      "name": "Regional Qualifier",
+      "date": 1705190400000,
+      "season": "2023-2024",
+      "location": null,
+      "createdAt": 1704153600000
+    }
+  ],
+  "scores": [
+    {
+      "id": "score-id-1",
+      "meetId": "meet-id-1",
+      "gymnastId": "unique-id-1",
+      "level": "Level 7",
+      "scores": {
+        "vault": 9.2,
+        "bars": 8.8,
+        "beam": 9.1,
+        "floor": 9.5,
+        "pommelHorse": null,
+        "rings": null,
+        "parallelBars": null,
+        "highBar": null,
+        "allAround": 36.6
+      },
+      "placements": {
+        "vault": 2,
+        "bars": 5,
+        "beam": 3,
+        "floor": 1,
+        "pommelHorse": null,
+        "rings": null,
+        "parallelBars": null,
+        "highBar": null,
+        "allAround": 2
+      },
+      "createdAt": 1704585600000
+    },
+    {
+      "id": "score-id-2",
+      "meetId": "meet-id-1",
+      "gymnastId": "unique-id-2",
+      "level": "Level 8",
+      "scores": {
+        "vault": 8.9,
+        "bars": null,
+        "beam": null,
+        "floor": 9.1,
+        "pommelHorse": 8.5,
+        "rings": 9.0,
+        "parallelBars": 8.7,
+        "highBar": 8.8,
+        "allAround": 53.0
+      },
+      "placements": {
+        "vault": 3,
+        "bars": null,
+        "beam": null,
+        "floor": 2,
+        "pommelHorse": 4,
+        "rings": 1,
+        "parallelBars": 5,
+        "highBar": 3,
+        "allAround": 3
+      },
+      "createdAt": 1704585600000
+    }
+  ]
+}
