@@ -105,11 +105,14 @@ function RootLayoutNav() {
         <Stack.Screen name="edit-gymnast" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="edit-score" options={{ presentation: 'modal', headerShown: false }} />
 
+        {/* Teams screens */}
+        <Stack.Screen name="level-meets/[id]" options={{ presentation: 'card', title: 'Team Meets' }} />
+        <Stack.Screen name="team-score/[id]" options={{ presentation: 'card', title: 'Team Score' }} />
+
         {/* Settings screens */}
         <Stack.Screen name="profile-settings" options={{ presentation: 'card', title: 'Profile Settings' }} />
         <Stack.Screen name="appearance" options={{ presentation: 'card', title: 'Appearance' }} />
         <Stack.Screen name="privacy-security" options={{ presentation: 'card', title: 'Privacy & Security' }} />
-        <Stack.Screen name="notifications" options={{ presentation: 'card', title: 'Notifications' }} />
         <Stack.Screen name="cloud-backup" options={{ presentation: 'card', title: 'Cloud Backup' }} />
         <Stack.Screen name="export-data" options={{ presentation: 'card', title: 'Export Data' }} />
         <Stack.Screen name="import-data" options={{ presentation: 'card', title: 'Import Data' }} />
