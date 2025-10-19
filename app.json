@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.illuvatar.ScoreVault"
     },
     "web": {
       "output": "static",
@@ -38,11 +39,26 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow ScoreVault to save score cards to your photo library.",
+          "savePhotosPermission": "Allow ScoreVault to save score cards to your photo library.",
+          "isAccessMediaLocationEnabled": true,
+          "androidPermissions": ["READ_MEDIA_IMAGES", "WRITE_EXTERNAL_STORAGE"]
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "aec8dab8-aebf-46e4-a32a-c5bb77f05e1e"
+      }
     }
   }
 }

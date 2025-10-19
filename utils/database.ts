@@ -1,0 +1,705 @@
+import * as SQLite from 'expo-sqlite';
+import * as Application from 'expo-application';
+import { Platform } from 'react-native';
+import { Gymnast, Meet, Score } from '@/types';
+import { db as firestore } from '@/config/firebase';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+
+// Open database
+const db = SQLite.openDatabaseSync('scorevault.db');
+
+// Initialize database tables
+export const initDatabase = async () => {
+  try {
+    // Create gymnasts table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS gymnasts (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        dateOfBirth INTEGER,
+        usagNumber TEXT,
+        level TEXT NOT NULL,
+        discipline TEXT NOT NULL,
+        createdAt INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_gymnasts_createdAt ON gymnasts(createdAt);
+    `);
+
+    // Create meets table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS meets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        season TEXT NOT NULL,
+        location TEXT,
+        createdAt INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_meets_date ON meets(date);
+      CREATE INDEX IF NOT EXISTS idx_meets_season ON meets(season);
+    `);
+
+    // Create scores table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS scores (
+        id TEXT PRIMARY KEY,
+        meetId TEXT NOT NULL,
+        gymnastId TEXT NOT NULL,
+        level TEXT,
+        vault REAL,
+        bars REAL,
+        beam REAL,
+        floor REAL,
+        pommelHorse REAL,
+        rings REAL,
+        parallelBars REAL,
+        highBar REAL,
+        allAround REAL NOT NULL,
+        vaultPlacement INTEGER,
+        barsPlacement INTEGER,
+        beamPlacement INTEGER,
+        floorPlacement INTEGER,
+        pommelHorsePlacement INTEGER,
+        ringsPlacement INTEGER,
+        parallelBarsPlacement INTEGER,
+        highBarPlacement INTEGER,
+        allAroundPlacement INTEGER,
+        createdAt INTEGER NOT NULL,
+        FOREIGN KEY (meetId) REFERENCES meets(id) ON DELETE CASCADE,
+        FOREIGN KEY (gymnastId) REFERENCES gymnasts(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_scores_meetId ON scores(meetId);
+      CREATE INDEX IF NOT EXISTS idx_scores_gymnastId ON scores(gymnastId);
+    `);
+
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    throw error;
+  }
+};
+
+// Helper function to generate unique ID
+const generateId = () => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Helper to convert timestamp to milliseconds
+const timestampToMs = (timestamp: any): number => {
+  if (!timestamp) return Date.now();
+  if (typeof timestamp === 'number') return timestamp;
+  if (timestamp.toMillis) return timestamp.toMillis();
+  if (timestamp instanceof Date) return timestamp.getTime();
+  return Date.now();
+};
+
+// ========== GYMNAST OPERATIONS ==========
+
+export const addGymnast = async (data: Omit<Gymnast, 'id' | 'createdAt' | 'userId'>): Promise<string> => {
+  const id = generateId();
+  const createdAt = Date.now();
+  const dateOfBirth = data.dateOfBirth ? timestampToMs(data.dateOfBirth) : null;
+
+  await db.runAsync(
+    `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, data.name, dateOfBirth, data.usagNumber || null, data.level, data.discipline, createdAt]
+  );
+
+  return id;
+};
+
+export const getGymnasts = async (): Promise<Gymnast[]> => {
+  const result = await db.getAllAsync<any>('SELECT * FROM gymnasts ORDER BY createdAt DESC');
+
+  return result.map(row => ({
+    id: row.id,
+    userId: 'local', // No longer using userId since data is local
+    name: row.name,
+    dateOfBirth: row.dateOfBirth ? { toMillis: () => row.dateOfBirth } : undefined,
+    usagNumber: row.usagNumber || undefined,
+    level: row.level,
+    discipline: row.discipline as 'Womens' | 'Mens',
+    createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
+  })) as Gymnast[];
+};
+
+export const getGymnastById = async (id: string): Promise<Gymnast | null> => {
+  const result = await db.getFirstAsync<any>('SELECT * FROM gymnasts WHERE id = ?', [id]);
+
+  if (!result) return null;
+
+  return {
+    id: result.id,
+    userId: 'local',
+    name: result.name,
+    dateOfBirth: result.dateOfBirth ? { toMillis: () => result.dateOfBirth } : undefined,
+    usagNumber: result.usagNumber || undefined,
+    level: result.level,
+    discipline: result.discipline as 'Womens' | 'Mens',
+    createdAt: { toMillis: () => result.createdAt, toDate: () => new Date(result.createdAt) }
+  } as Gymnast;
+};
+
+export const updateGymnast = async (id: string, data: Partial<Omit<Gymnast, 'id' | 'userId' | 'createdAt'>>): Promise<void> => {
+  const updates: string[] = [];
+  const values: any[] = [];
+
+  if (data.name !== undefined) {
+    updates.push('name = ?');
+    values.push(data.name);
+  }
+  if (data.dateOfBirth !== undefined) {
+    updates.push('dateOfBirth = ?');
+    values.push(data.dateOfBirth ? timestampToMs(data.dateOfBirth) : null);
+  }
+  if (data.usagNumber !== undefined) {
+    updates.push('usagNumber = ?');
+    values.push(data.usagNumber || null);
+  }
+  if (data.level !== undefined) {
+    updates.push('level = ?');
+    values.push(data.level);
+  }
+  if (data.discipline !== undefined) {
+    updates.push('discipline = ?');
+    values.push(data.discipline);
+  }
+
+  if (updates.length === 0) return;
+
+  values.push(id);
+  await db.runAsync(
+    `UPDATE gymnasts SET ${updates.join(', ')} WHERE id = ?`,
+    values
+  );
+};
+
+export const deleteGymnast = async (id: string): Promise<void> => {
+  // Delete gymnast (scores will be cascade deleted)
+  await db.runAsync('DELETE FROM gymnasts WHERE id = ?', [id]);
+};
+
+// ========== MEET OPERATIONS ==========
+
+export const addMeet = async (data: Omit<Meet, 'id' | 'createdAt' | 'userId'>): Promise<string> => {
+  const id = generateId();
+  const createdAt = Date.now();
+  const date = timestampToMs(data.date);
+
+  await db.runAsync(
+    `INSERT INTO meets (id, name, date, season, location, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, data.name, date, data.season, data.location || null, createdAt]
+  );
+
+  return id;
+};
+
+export const getMeets = async (): Promise<Meet[]> => {
+  const result = await db.getAllAsync<any>('SELECT * FROM meets ORDER BY date DESC');
+
+  return result.map(row => ({
+    id: row.id,
+    userId: 'local',
+    name: row.name,
+    date: { toMillis: () => row.date, toDate: () => new Date(row.date) },
+    season: row.season,
+    location: row.location || undefined,
+    createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
+  })) as Meet[];
+};
+
+export const getMeetById = async (id: string): Promise<Meet | null> => {
+  const result = await db.getFirstAsync<any>('SELECT * FROM meets WHERE id = ?', [id]);
+
+  if (!result) return null;
+
+  return {
+    id: result.id,
+    userId: 'local',
+    name: result.name,
+    date: { toMillis: () => result.date, toDate: () => new Date(result.date) },
+    season: result.season,
+    location: result.location || undefined,
+    createdAt: { toMillis: () => result.createdAt, toDate: () => new Date(result.createdAt) }
+  } as Meet;
+};
+
+export const updateMeet = async (id: string, data: Partial<Omit<Meet, 'id' | 'userId' | 'createdAt'>>): Promise<void> => {
+  const updates: string[] = [];
+  const values: any[] = [];
+
+  if (data.name !== undefined) {
+    updates.push('name = ?');
+    values.push(data.name);
+  }
+  if (data.date !== undefined) {
+    updates.push('date = ?');
+    values.push(timestampToMs(data.date));
+  }
+  if (data.season !== undefined) {
+    updates.push('season = ?');
+    values.push(data.season);
+  }
+  if (data.location !== undefined) {
+    updates.push('location = ?');
+    values.push(data.location || null);
+  }
+
+  if (updates.length === 0) return;
+
+  values.push(id);
+  await db.runAsync(
+    `UPDATE meets SET ${updates.join(', ')} WHERE id = ?`,
+    values
+  );
+};
+
+export const deleteMeet = async (id: string): Promise<void> => {
+  // Delete meet (scores will be cascade deleted)
+  await db.runAsync('DELETE FROM meets WHERE id = ?', [id]);
+};
+
+// ========== SCORE OPERATIONS ==========
+
+export const addScore = async (data: Omit<Score, 'id' | 'createdAt' | 'userId'>): Promise<string> => {
+  const id = generateId();
+  const createdAt = Date.now();
+
+  await db.runAsync(
+    `INSERT INTO scores (
+      id, meetId, gymnastId, level, vault, bars, beam, floor,
+      pommelHorse, rings, parallelBars, highBar, allAround,
+      vaultPlacement, barsPlacement, beamPlacement, floorPlacement,
+      pommelHorsePlacement, ringsPlacement, parallelBarsPlacement, highBarPlacement,
+      allAroundPlacement, createdAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, data.meetId, data.gymnastId, data.level || null,
+      data.scores.vault || null, data.scores.bars || null, data.scores.beam || null, data.scores.floor || null,
+      data.scores.pommelHorse || null, data.scores.rings || null, data.scores.parallelBars || null, data.scores.highBar || null,
+      data.scores.allAround,
+      data.placements.vault || null, data.placements.bars || null, data.placements.beam || null, data.placements.floor || null,
+      data.placements.pommelHorse || null, data.placements.rings || null, data.placements.parallelBars || null, data.placements.highBar || null,
+      data.placements.allAround || null,
+      createdAt
+    ]
+  );
+
+  return id;
+};
+
+export const getScores = async (): Promise<Score[]> => {
+  const result = await db.getAllAsync<any>('SELECT * FROM scores ORDER BY createdAt DESC');
+
+  return result.map(rowToScore);
+};
+
+export const getScoresByGymnast = async (gymnastId: string): Promise<Score[]> => {
+  const result = await db.getAllAsync<any>('SELECT * FROM scores WHERE gymnastId = ? ORDER BY createdAt DESC', [gymnastId]);
+
+  return result.map(rowToScore);
+};
+
+export const getScoresByMeet = async (meetId: string): Promise<Score[]> => {
+  const result = await db.getAllAsync<any>('SELECT * FROM scores WHERE meetId = ? ORDER BY createdAt DESC', [meetId]);
+
+  return result.map(rowToScore);
+};
+
+export const getScoreById = async (id: string): Promise<Score | null> => {
+  const result = await db.getFirstAsync<any>('SELECT * FROM scores WHERE id = ?', [id]);
+
+  if (!result) return null;
+  return rowToScore(result);
+};
+
+export const updateScore = async (id: string, data: Partial<Omit<Score, 'id' | 'userId' | 'createdAt'>>): Promise<void> => {
+  const updates: string[] = [];
+  const values: any[] = [];
+
+  if (data.meetId !== undefined) {
+    updates.push('meetId = ?');
+    values.push(data.meetId);
+  }
+  if (data.gymnastId !== undefined) {
+    updates.push('gymnastId = ?');
+    values.push(data.gymnastId);
+  }
+  if (data.level !== undefined) {
+    updates.push('level = ?');
+    values.push(data.level || null);
+  }
+
+  // Update scores
+  if (data.scores) {
+    if (data.scores.vault !== undefined) {
+      updates.push('vault = ?');
+      values.push(data.scores.vault || null);
+    }
+    if (data.scores.bars !== undefined) {
+      updates.push('bars = ?');
+      values.push(data.scores.bars || null);
+    }
+    if (data.scores.beam !== undefined) {
+      updates.push('beam = ?');
+      values.push(data.scores.beam || null);
+    }
+    if (data.scores.floor !== undefined) {
+      updates.push('floor = ?');
+      values.push(data.scores.floor || null);
+    }
+    if (data.scores.pommelHorse !== undefined) {
+      updates.push('pommelHorse = ?');
+      values.push(data.scores.pommelHorse || null);
+    }
+    if (data.scores.rings !== undefined) {
+      updates.push('rings = ?');
+      values.push(data.scores.rings || null);
+    }
+    if (data.scores.parallelBars !== undefined) {
+      updates.push('parallelBars = ?');
+      values.push(data.scores.parallelBars || null);
+    }
+    if (data.scores.highBar !== undefined) {
+      updates.push('highBar = ?');
+      values.push(data.scores.highBar || null);
+    }
+    if (data.scores.allAround !== undefined) {
+      updates.push('allAround = ?');
+      values.push(data.scores.allAround);
+    }
+  }
+
+  // Update placements
+  if (data.placements) {
+    if (data.placements.vault !== undefined) {
+      updates.push('vaultPlacement = ?');
+      values.push(data.placements.vault || null);
+    }
+    if (data.placements.bars !== undefined) {
+      updates.push('barsPlacement = ?');
+      values.push(data.placements.bars || null);
+    }
+    if (data.placements.beam !== undefined) {
+      updates.push('beamPlacement = ?');
+      values.push(data.placements.beam || null);
+    }
+    if (data.placements.floor !== undefined) {
+      updates.push('floorPlacement = ?');
+      values.push(data.placements.floor || null);
+    }
+    if (data.placements.pommelHorse !== undefined) {
+      updates.push('pommelHorsePlacement = ?');
+      values.push(data.placements.pommelHorse || null);
+    }
+    if (data.placements.rings !== undefined) {
+      updates.push('ringsPlacement = ?');
+      values.push(data.placements.rings || null);
+    }
+    if (data.placements.parallelBars !== undefined) {
+      updates.push('parallelBarsPlacement = ?');
+      values.push(data.placements.parallelBars || null);
+    }
+    if (data.placements.highBar !== undefined) {
+      updates.push('highBarPlacement = ?');
+      values.push(data.placements.highBar || null);
+    }
+    if (data.placements.allAround !== undefined) {
+      updates.push('allAroundPlacement = ?');
+      values.push(data.placements.allAround || null);
+    }
+  }
+
+  if (updates.length === 0) return;
+
+  values.push(id);
+  await db.runAsync(
+    `UPDATE scores SET ${updates.join(', ')} WHERE id = ?`,
+    values
+  );
+};
+
+export const deleteScore = async (id: string): Promise<void> => {
+  await db.runAsync('DELETE FROM scores WHERE id = ?', [id]);
+};
+
+// Helper function to convert database row to Score object
+const rowToScore = (row: any): Score => ({
+  id: row.id,
+  meetId: row.meetId,
+  gymnastId: row.gymnastId,
+  userId: 'local',
+  level: row.level || undefined,
+  scores: {
+    vault: row.vault || undefined,
+    bars: row.bars || undefined,
+    beam: row.beam || undefined,
+    floor: row.floor || undefined,
+    pommelHorse: row.pommelHorse || undefined,
+    rings: row.rings || undefined,
+    parallelBars: row.parallelBars || undefined,
+    highBar: row.highBar || undefined,
+    allAround: row.allAround
+  },
+  placements: {
+    vault: row.vaultPlacement || undefined,
+    bars: row.barsPlacement || undefined,
+    beam: row.beamPlacement || undefined,
+    floor: row.floorPlacement || undefined,
+    pommelHorse: row.pommelHorsePlacement || undefined,
+    rings: row.ringsPlacement || undefined,
+    parallelBars: row.parallelBarsPlacement || undefined,
+    highBar: row.highBarPlacement || undefined,
+    allAround: row.allAroundPlacement || undefined
+  },
+  createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
+});
+
+// ========== STATISTICS & QUERIES ==========
+
+export const getScoreCountByGymnast = async (gymnastId: string): Promise<number> => {
+  const result = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(DISTINCT meetId) as count FROM scores WHERE gymnastId = ?',
+    [gymnastId]
+  );
+  return result?.count || 0;
+};
+
+export const getScoreCountByMeet = async (meetId: string): Promise<number> => {
+  const result = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM scores WHERE meetId = ?',
+    [meetId]
+  );
+  return result?.count || 0;
+};
+
+// ========== DATA EXPORT/IMPORT ==========
+
+export const exportAllData = async (): Promise<{ gymnasts: Gymnast[]; meets: Meet[]; scores: Score[] }> => {
+  const gymnasts = await getGymnasts();
+  const meets = await getMeets();
+  const scores = await getScores();
+
+  return { gymnasts, meets, scores };
+};
+
+export const importAllData = async (data: { gymnasts: any[]; meets: any[]; scores: any[] }): Promise<void> => {
+  try {
+    // Clear existing data
+    await db.execAsync('DELETE FROM scores; DELETE FROM meets; DELETE FROM gymnasts;');
+
+    // Import gymnasts
+    for (const gymnast of data.gymnasts) {
+      await db.runAsync(
+        `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          gymnast.id,
+          gymnast.name,
+          gymnast.dateOfBirth ? timestampToMs(gymnast.dateOfBirth) : null,
+          gymnast.usagNumber || null,
+          gymnast.level,
+          gymnast.discipline,
+          timestampToMs(gymnast.createdAt)
+        ]
+      );
+    }
+
+    // Import meets
+    for (const meet of data.meets) {
+      await db.runAsync(
+        `INSERT INTO meets (id, name, date, season, location, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          meet.id,
+          meet.name,
+          timestampToMs(meet.date),
+          meet.season,
+          meet.location || null,
+          timestampToMs(meet.createdAt)
+        ]
+      );
+    }
+
+    // Import scores
+    for (const score of data.scores) {
+      await db.runAsync(
+        `INSERT INTO scores (
+          id, meetId, gymnastId, level, vault, bars, beam, floor,
+          pommelHorse, rings, parallelBars, highBar, allAround,
+          vaultPlacement, barsPlacement, beamPlacement, floorPlacement,
+          pommelHorsePlacement, ringsPlacement, parallelBarsPlacement, highBarPlacement,
+          allAroundPlacement, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          score.id,
+          score.meetId,
+          score.gymnastId,
+          score.level || null,
+          score.scores.vault || null,
+          score.scores.bars || null,
+          score.scores.beam || null,
+          score.scores.floor || null,
+          score.scores.pommelHorse || null,
+          score.scores.rings || null,
+          score.scores.parallelBars || null,
+          score.scores.highBar || null,
+          score.scores.allAround,
+          score.placements.vault || null,
+          score.placements.bars || null,
+          score.placements.beam || null,
+          score.placements.floor || null,
+          score.placements.pommelHorse || null,
+          score.placements.rings || null,
+          score.placements.parallelBars || null,
+          score.placements.highBar || null,
+          score.placements.allAround || null,
+          timestampToMs(score.createdAt)
+        ]
+      );
+    }
+
+    console.log('Data imported successfully');
+  } catch (error) {
+    console.error('Error importing data:', error);
+    throw error;
+  }
+};
+
+// ========== FIREBASE CLOUD BACKUP ==========
+
+// Backup all local data to Firebase
+export const backupToFirebase = async (userId: string): Promise<{ success: boolean; timestamp: number; error?: string }> => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required for backup');
+    }
+
+    const allData = await exportAllData();
+    const timestamp = Date.now();
+
+    // Serialize data for Firestore (convert timestamp objects to numbers, undefined to null)
+    const serializedData = {
+      gymnasts: allData.gymnasts.map(g => ({
+        id: g.id,
+        userId: g.userId,
+        name: g.name,
+        dateOfBirth: g.dateOfBirth ? timestampToMs(g.dateOfBirth) : null,
+        usagNumber: g.usagNumber || null,
+        level: g.level,
+        discipline: g.discipline,
+        createdAt: timestampToMs(g.createdAt)
+      })),
+      meets: allData.meets.map(m => ({
+        id: m.id,
+        userId: m.userId,
+        name: m.name,
+        date: timestampToMs(m.date),
+        season: m.season,
+        location: m.location || null,
+        createdAt: timestampToMs(m.createdAt)
+      })),
+      scores: allData.scores.map(s => ({
+        id: s.id,
+        meetId: s.meetId,
+        gymnastId: s.gymnastId,
+        userId: s.userId,
+        level: s.level || null,
+        scores: {
+          vault: s.scores.vault || null,
+          bars: s.scores.bars || null,
+          beam: s.scores.beam || null,
+          floor: s.scores.floor || null,
+          pommelHorse: s.scores.pommelHorse || null,
+          rings: s.scores.rings || null,
+          parallelBars: s.scores.parallelBars || null,
+          highBar: s.scores.highBar || null,
+          allAround: s.scores.allAround
+        },
+        placements: {
+          vault: s.placements.vault || null,
+          bars: s.placements.bars || null,
+          beam: s.placements.beam || null,
+          floor: s.placements.floor || null,
+          pommelHorse: s.placements.pommelHorse || null,
+          rings: s.placements.rings || null,
+          parallelBars: s.placements.parallelBars || null,
+          highBar: s.placements.highBar || null,
+          allAround: s.placements.allAround || null
+        },
+        createdAt: timestampToMs(s.createdAt)
+      }))
+    };
+
+    // Store backup in Firestore using userId as the document ID
+    const backupRef = doc(firestore, 'backups', userId);
+    await setDoc(backupRef, {
+      data: serializedData,
+      timestamp,
+      lastBackup: serverTimestamp(),
+      userId
+    });
+
+    console.log('Backup successful:', { userId, timestamp });
+    return { success: true, timestamp };
+  } catch (error: any) {
+    console.error('Backup failed:', error);
+    return { success: false, timestamp: Date.now(), error: error.message || 'Backup failed' };
+  }
+};
+
+// Restore data from Firebase backup
+export const restoreFromFirebase = async (userId: string): Promise<{ success: boolean; timestamp?: number; error?: string }> => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required for restore');
+    }
+
+    // Fetch backup from Firestore using userId
+    const backupRef = doc(firestore, 'backups', userId);
+    const backupSnap = await getDoc(backupRef);
+
+    if (!backupSnap.exists()) {
+      return { success: false, error: 'No backup found for this account' };
+    }
+
+    const backupData = backupSnap.data();
+    
+    if (!backupData.data) {
+      return { success: false, error: 'Backup data is corrupted' };
+    }
+
+    // Import the backup data
+    await importAllData(backupData.data);
+
+    console.log('Restore successful:', { userId, timestamp: backupData.timestamp });
+    return { success: true, timestamp: backupData.timestamp };
+  } catch (error: any) {
+    console.error('Restore failed:', error);
+    return { success: false, error: error.message || 'Restore failed' };
+  }
+};
+
+// Get last backup info
+export const getLastBackupInfo = async (userId: string): Promise<{ timestamp?: number; exists: boolean }> => {
+  try {
+    if (!userId) {
+      return { exists: false };
+    }
+
+    const backupRef = doc(firestore, 'backups', userId);
+    const backupSnap = await getDoc(backupRef);
+
+    if (!backupSnap.exists()) {
+      return { exists: false };
+    }
+
+    const backupData = backupSnap.data();
+    return { timestamp: backupData.timestamp, exists: true };
+  } catch (error) {
+    console.error('Error checking backup:', error);
+    return { exists: false };
+  }
+};
