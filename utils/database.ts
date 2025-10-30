@@ -20,10 +20,18 @@ export const initDatabase = async () => {
         usagNumber TEXT,
         level TEXT NOT NULL,
         discipline TEXT NOT NULL,
+        isHidden INTEGER DEFAULT 0,
         createdAt INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_gymnasts_createdAt ON gymnasts(createdAt);
     `);
+
+    // Add isHidden column if it doesn't exist (for existing databases)
+    try {
+      await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
+    } catch (e) {
+      // Column already exists, ignore error
+    }
 
     // Create meets table
     await db.execAsync(`
@@ -101,16 +109,28 @@ export const addGymnast = async (data: Omit<Gymnast, 'id' | 'createdAt' | 'userI
   const dateOfBirth = data.dateOfBirth ? timestampToMs(data.dateOfBirth) : null;
 
   await db.runAsync(
-    `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, data.name, dateOfBirth, data.usagNumber || null, data.level, data.discipline, createdAt]
+    `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, isHidden, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, data.name, dateOfBirth, data.usagNumber || null, data.level, data.discipline, 0, createdAt]
   );
 
   return id;
 };
 
-export const getGymnasts = async (): Promise<Gymnast[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM gymnasts ORDER BY createdAt DESC');
+export const getGymnasts = async (includeHidden: boolean = false): Promise<Gymnast[]> => {
+  let result;
+
+  try {
+    const query = includeHidden
+      ? 'SELECT * FROM gymnasts ORDER BY createdAt DESC'
+      : 'SELECT * FROM gymnasts WHERE isHidden = 0 ORDER BY createdAt DESC';
+
+    result = await db.getAllAsync<any>(query);
+  } catch (error) {
+    // Column might not exist yet - fall back to getting all gymnasts
+    console.log('isHidden column not found, fetching all gymnasts');
+    result = await db.getAllAsync<any>('SELECT * FROM gymnasts ORDER BY createdAt DESC');
+  }
 
   return result.map(row => ({
     id: row.id,
@@ -120,6 +140,7 @@ export const getGymnasts = async (): Promise<Gymnast[]> => {
     usagNumber: row.usagNumber || undefined,
     level: row.level,
     discipline: row.discipline as 'Womens' | 'Mens',
+    isHidden: row.isHidden === 1,
     createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
   })) as Gymnast[];
 };
@@ -137,8 +158,53 @@ export const getGymnastById = async (id: string): Promise<Gymnast | null> => {
     usagNumber: result.usagNumber || undefined,
     level: result.level,
     discipline: result.discipline as 'Womens' | 'Mens',
+    isHidden: result.isHidden === 1,
     createdAt: { toMillis: () => result.createdAt, toDate: () => new Date(result.createdAt) }
   } as Gymnast;
+};
+
+export const hideGymnast = async (id: string): Promise<void> => {
+  try {
+    await db.runAsync('UPDATE gymnasts SET isHidden = 1 WHERE id = ?', [id]);
+  } catch (error) {
+    // Column might not exist - try to add it first
+    try {
+      await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
+      await db.runAsync('UPDATE gymnasts SET isHidden = 1 WHERE id = ?', [id]);
+    } catch (e) {
+      throw new Error('Failed to hide gymnast. Please restart the app and try again.');
+    }
+  }
+};
+
+export const unhideGymnast = async (id: string): Promise<void> => {
+  try {
+    await db.runAsync('UPDATE gymnasts SET isHidden = 0 WHERE id = ?', [id]);
+  } catch (error) {
+    throw new Error('Failed to unhide gymnast. Please restart the app and try again.');
+  }
+};
+
+export const getHiddenGymnasts = async (): Promise<Gymnast[]> => {
+  try {
+    const result = await db.getAllAsync<any>('SELECT * FROM gymnasts WHERE isHidden = 1 ORDER BY createdAt DESC');
+
+    return result.map(row => ({
+      id: row.id,
+      userId: 'local',
+      name: row.name,
+      dateOfBirth: row.dateOfBirth ? { toMillis: () => row.dateOfBirth } : undefined,
+      usagNumber: row.usagNumber || undefined,
+      level: row.level,
+      discipline: row.discipline as 'Womens' | 'Mens',
+      isHidden: row.isHidden === 1,
+      createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
+    })) as Gymnast[];
+  } catch (error) {
+    // Column might not exist yet - return empty array
+    console.log('isHidden column not found, returning empty array');
+    return [];
+  }
 };
 
 export const updateGymnast = async (id: string, data: Partial<Omit<Gymnast, 'id' | 'userId' | 'createdAt'>>): Promise<void> => {

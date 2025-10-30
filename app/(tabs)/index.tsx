@@ -2,18 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  ScrollView
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Gymnast } from '@/types';
 import FloatingActionButton from '@/components/FloatingActionButton';
-import { getInitials, UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
+import { getInitials, UI_PALETTE, CARD_SHADOW, getCardBorder } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getGymnasts, getScoreCountByGymnast } from '@/utils/database';
 
@@ -21,11 +21,19 @@ interface GymnastWithStats extends Gymnast {
   scoreCount: number;
 }
 
+interface GymnastGroup {
+  level: string;
+  discipline: 'Womens' | 'Mens';
+  gymnasts: GymnastWithStats[];
+  isCollapsible: boolean;
+}
+
 export default function GymnastsScreen() {
   const [gymnasts, setGymnasts] = useState<GymnastWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { theme } = useTheme();
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const { theme, isDark } = useTheme();
   const router = useRouter();
 
   const fetchGymnastsWithStats = async () => {
@@ -79,6 +87,80 @@ export default function GymnastsScreen() {
     router.push(`/gymnast/${gymnastId}`);
   };
 
+  // Group gymnasts by level and discipline
+  const groupGymnasts = (): GymnastGroup[] => {
+    const groups = new Map<string, GymnastWithStats[]>();
+
+    gymnasts.forEach((gymnast) => {
+      const key = `${gymnast.level}-${gymnast.discipline}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(gymnast);
+    });
+
+    // Check if ANY group has more than 3 gymnasts
+    let shouldAllBeCollapsible = false;
+    for (const gymnastsList of groups.values()) {
+      if (gymnastsList.length > 3) {
+        shouldAllBeCollapsible = true;
+        break;
+      }
+    }
+
+    const result: GymnastGroup[] = [];
+    groups.forEach((gymnastsList, key) => {
+      const [level, discipline] = key.split('-');
+      result.push({
+        level,
+        discipline: discipline as 'Womens' | 'Mens',
+        gymnasts: gymnastsList.sort((a, b) => a.name.localeCompare(b.name)),
+        isCollapsible: shouldAllBeCollapsible
+      });
+    });
+
+    // Sort groups by level, then discipline
+    return result.sort((a, b) => {
+      const levelA = getLevelOrder(a.level);
+      const levelB = getLevelOrder(b.level);
+      if (levelA !== levelB) return levelA - levelB;
+      return a.discipline === 'Womens' ? -1 : 1;
+    });
+  };
+
+  const getLevelOrder = (level: string): number => {
+    if (level.startsWith('Level ')) {
+      return parseInt(level.replace('Level ', ''));
+    }
+    const xcelOrder: Record<string, number> = {
+      'Xcel Bronze': 11,
+      'Xcel Silver': 12,
+      'Xcel Gold': 13,
+      'Xcel Platinum': 14,
+      'Xcel Diamond': 15,
+      'Xcel Sapphire': 16
+    };
+    if (level in xcelOrder) return xcelOrder[level];
+    if (level === 'Elite') return 100;
+    return 999;
+  };
+
+  const toggleSection = (level: string, discipline: string) => {
+    const key = `${level}-${discipline}`;
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(key)) {
+      newCollapsed.delete(key);
+    } else {
+      newCollapsed.add(key);
+    }
+    setCollapsedSections(newCollapsed);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const isSectionCollapsed = (level: string, discipline: string): boolean => {
+    return collapsedSections.has(`${level}-${discipline}`);
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -121,14 +203,53 @@ export default function GymnastsScreen() {
       textAlign: 'center',
       lineHeight: 20
     },
-    listContent: {
-      padding: theme.spacing.base
+    scrollContent: {
+      padding: theme.spacing.base,
+      paddingBottom: 100
     },
-    gymnastCardWrapper: {
-      marginBottom: theme.spacing.md,
+    sectionCard: {
+      marginBottom: theme.spacing.lg,
       borderRadius: 28,
       overflow: 'hidden',
-      ...CARD_SHADOW
+      backgroundColor: theme.colors.surface,
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.spacing.lg,
+      backgroundColor: theme.colors.surface
+    },
+    sectionHeaderText: {
+      ...theme.typography.h5,
+      color: theme.colors.textPrimary,
+      fontWeight: '700',
+      flex: 1
+    },
+    sectionCount: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      marginLeft: theme.spacing.sm
+    },
+    sectionChevron: {
+      fontSize: 24,
+      color: theme.colors.textSecondary,
+      fontWeight: '300',
+      marginLeft: theme.spacing.sm
+    },
+    sectionDivider: {
+      height: 1,
+      backgroundColor: theme.colors.border,
+      marginHorizontal: theme.spacing.lg
+    },
+    gymnastCardWrapper: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border
+    },
+    gymnastCardWrapperLast: {
+      borderBottomWidth: 0
     },
     gymnastCard: {
       padding: theme.spacing.lg,
@@ -220,6 +341,8 @@ export default function GymnastsScreen() {
     );
   }
 
+  const groups = groupGymnasts();
+
   return (
     <View style={styles.container}>
       {gymnasts.length === 0 ? (
@@ -237,65 +360,91 @@ export default function GymnastsScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={gymnasts}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.gymnastCardWrapper}>
-              <TouchableOpacity
-                onPress={() => handleGymnastPress(item.id)}
-                activeOpacity={0.7}>
-                <LinearGradient
-                  colors={theme.colors.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.gymnastCard}>
-
-                  {/* Avatar with Initials */}
-                  <View style={styles.avatarContainer}>
-                    <LinearGradient
-                      colors={theme.colors.avatarGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.avatar}>
-                      <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
-                    </LinearGradient>
-                  </View>
-
-                  {/* Gymnast Info */}
-                  <View style={styles.gymnastInfo}>
-                    <Text style={styles.gymnastName}>{item.name}</Text>
-                    <View style={styles.metaRow}>
-                      {item.level && (
-                        <View style={styles.levelBadge}>
-                          <Text style={styles.levelText}>{item.level}</Text>
-                        </View>
-                      )}
-                      {item.scoreCount > 0 && (
-                        <Text style={styles.scoreCountText}>
-                          {item.scoreCount} {item.scoreCount === 1 ? 'meet' : 'meets'}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Chevron */}
-                  <View style={styles.chevronContainer}>
-                    <Text style={styles.chevron}>›</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor={theme.colors.primary}
             />
-          }
-          contentContainerStyle={styles.listContent}
-        />
+          }>
+          {groups.map((group) => {
+            const isCollapsed = isSectionCollapsed(group.level, group.discipline);
+            const shouldShowGymnasts = !group.isCollapsible || !isCollapsed;
+
+            return (
+              <View key={`${group.level}-${group.discipline}`} style={styles.sectionCard}>
+                {/* Section Header */}
+                <TouchableOpacity
+                  onPress={() => group.isCollapsible && toggleSection(group.level, group.discipline)}
+                  disabled={!group.isCollapsible}
+                  activeOpacity={0.7}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeaderText}>
+                      {group.level} - {group.discipline === 'Womens' ? "Women's" : "Men's"}
+                      <Text style={styles.sectionCount}> ({group.gymnasts.length})</Text>
+                    </Text>
+                    {group.isCollapsible && (
+                      <Text style={styles.sectionChevron}>
+                        {isCollapsed ? '›' : '⌄'}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Divider after header if expanded */}
+                {shouldShowGymnasts && group.gymnasts.length > 0 && (
+                  <View style={styles.sectionDivider} />
+                )}
+
+                {/* Gymnast Cards */}
+                {shouldShowGymnasts && group.gymnasts.map((gymnast, index) => (
+                  <View
+                    key={gymnast.id}
+                    style={[
+                      styles.gymnastCardWrapper,
+                      index === group.gymnasts.length - 1 && styles.gymnastCardWrapperLast
+                    ]}>
+                    <TouchableOpacity
+                      onPress={() => handleGymnastPress(gymnast.id)}
+                      activeOpacity={0.7}>
+                      <View style={styles.gymnastCard}>
+                        {/* Avatar with Initials */}
+                        <View style={styles.avatarContainer}>
+                          <LinearGradient
+                            colors={theme.colors.avatarGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.avatar}>
+                            <Text style={styles.avatarText}>{getInitials(gymnast.name)}</Text>
+                          </LinearGradient>
+                        </View>
+
+                        {/* Gymnast Info */}
+                        <View style={styles.gymnastInfo}>
+                          <Text style={styles.gymnastName}>{gymnast.name}</Text>
+                          <View style={styles.metaRow}>
+                            {gymnast.scoreCount > 0 && (
+                              <Text style={styles.scoreCountText}>
+                                {gymnast.scoreCount} {gymnast.scoreCount === 1 ? 'meet' : 'meets'}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+
+                        {/* Chevron */}
+                        <View style={styles.chevronContainer}>
+                          <Text style={styles.chevron}>›</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            );
+          })}
+        </ScrollView>
       )}
       <FloatingActionButton onPress={handleAddGymnast} />
     </View>

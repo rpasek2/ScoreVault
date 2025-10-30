@@ -247,6 +247,7 @@ export default function AddGymnastScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter name"
+              placeholderTextColor={theme.colors.textTertiary}
               value={name}
               onChangeText={setName}
               editable={!loading}
@@ -280,6 +281,7 @@ export default function AddGymnastScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter USAG number"
+              placeholderTextColor={theme.colors.textTertiary}
               value={usagNumber}
               onChangeText={setUsagNumber}
               editable={!loading}

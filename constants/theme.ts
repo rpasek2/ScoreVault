@@ -88,6 +88,17 @@ export const SOFT_SHADOW: ViewStyle =
         shadowOffset: { width: 0, height: 8 }
       };
 
+// Card border for better visibility in light mode
+export const getCardBorder = (isDark: boolean = false): ViewStyle => {
+  if (isDark) {
+    return {};
+  }
+  return {
+    borderWidth: 1.5,
+    borderColor: 'rgba(107, 110, 255, 0.35)', // Semi-transparent purple
+  };
+};
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

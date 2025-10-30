@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
-import { CARD_SHADOW } from '@/constants/theme';
+import { CARD_SHADOW, getCardBorder } from '@/constants/theme';
 import { getGymnasts, getMeets, getScores } from '@/utils/database';
 import { Gymnast, Meet, Score } from '@/types';
 
@@ -24,7 +24,7 @@ interface LevelDisciplineCombo {
 }
 
 export default function TeamsScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -284,7 +284,8 @@ export default function TeamsScreen() {
       marginBottom: theme.spacing.md,
       borderRadius: 16,
       overflow: 'hidden',
-      ...CARD_SHADOW
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
     },
     teamCard: {
       padding: theme.spacing.lg,
@@ -339,6 +340,28 @@ export default function TeamsScreen() {
       color: theme.colors.textSecondary,
       textAlign: 'center',
       lineHeight: 20
+    },
+    infoCard: {
+      backgroundColor: theme.colors.surface,
+      marginHorizontal: theme.spacing.base,
+      marginTop: theme.spacing.base,
+      marginBottom: theme.spacing.sm,
+      padding: theme.spacing.md,
+      borderRadius: theme.borderRadius.lg,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.primary,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm
+    },
+    infoIcon: {
+      fontSize: 18
+    },
+    infoText: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      flex: 1,
+      lineHeight: 18
     }
   });
 
@@ -382,6 +405,16 @@ export default function TeamsScreen() {
             activeOpacity={0.7}>
             <Text style={[styles.arrowText, !canGoNext && styles.arrowTextDisabled]}>›</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Info Card - Only show when there are teams */}
+      {levelDisciplineCombos.length > 0 && (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoIcon}>ℹ️</Text>
+          <Text style={styles.infoText}>
+            Teams are automatically created from your gymnasts and scores by level and discipline
+          </Text>
         </View>
       )}
 

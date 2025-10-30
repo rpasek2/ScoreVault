@@ -9,7 +9,7 @@
 5. ✅ Authentication context with sign up/sign in/sign out
 6. ✅ Protected routes with automatic navigation
 7. ✅ Authentication screen (login/signup with toggle)
-8. ✅ Tab navigation configured (Gymnasts, Meets, Settings)
+8. ✅ Tab navigation configured (Gymnasts, Meets, Teams, Settings)
 9. ✅ Settings screen with sign out functionality
 
 ## 🔧 Required: Firebase Configuration
@@ -112,20 +112,49 @@ npm run android
 npm run web
 ```
 
-## 📋 Next Steps (Not Yet Built)
+## 🧪 Running Tests
 
-The following features still need to be implemented:
+The app includes a comprehensive test suite:
 
-1. ⏳ FAB (Floating Action Button) component
-2. ⏳ Gymnasts list screen with data fetching
-3. ⏳ Add Gymnast modal
-4. ⏳ Gymnast Detail screen with season picker
-5. ⏳ Add/Edit Score modal with real-time calculations
-6. ⏳ Meets tab (unified timeline view)
-7. ⏳ Edit/Delete gymnast functionality
-8. ⏳ Edit/Delete score functionality
-9. ⏳ Loading states and error handling
-10. ⏳ Pull-to-refresh on lists
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run with coverage report
+npm run test:coverage
+
+# Run specific test file
+npm test -- database.gymnasts.test.ts
+```
+
+**Test Coverage:**
+- Unit tests for utilities (theme, team scoring, seasons)
+- Database integration tests (CRUD operations)
+- End-to-end workflow tests
+- Mock database for isolated testing
+
+## ✅ Completed Features
+
+All core features have been implemented:
+
+1. ✅ FAB (Floating Action Button) component
+2. ✅ Gymnasts list screen with data fetching
+3. ✅ Add Gymnast functionality
+4. ✅ Gymnast Detail screen with performance analytics
+5. ✅ Add/Edit Score with real-time calculations
+6. ✅ Meets tab (unified timeline view)
+7. ✅ Edit/Delete gymnast functionality (with hide/unhide)
+8. ✅ Edit/Delete score functionality
+9. ✅ Loading states and error handling
+10. ✅ Pull-to-refresh on lists
+11. ✅ Team scoring with analytics and charts
+12. ✅ Social media score cards with rich customization
+13. ✅ Cloud backup and restore
+14. ✅ Import/Export (JSON and CSV)
+15. ✅ Comprehensive test suite (90+ tests)
 
 ## 📁 Project Structure
 
@@ -134,22 +163,51 @@ ScoreVault/
 ├── app/
 │   ├── (auth)/
 │   │   ├── _layout.tsx          ✅ Auth stack layout
-│   │   └── sign-in.tsx           ✅ Login/Sign up screen
+│   │   └── sign-in.tsx          ✅ Login/Sign up screen
 │   ├── (tabs)/
-│   │   ├── _layout.tsx           ✅ Tab navigation
-│   │   ├── index.tsx             ⏳ Gymnasts list (needs work)
-│   │   ├── meets.tsx             ⏳ Meets timeline (needs work)
-│   │   └── settings.tsx          ✅ Settings screen
-│   └── _layout.tsx               ✅ Root layout with auth
+│   │   ├── _layout.tsx          ✅ Tab navigation
+│   │   ├── index.tsx            ✅ Gymnasts list
+│   │   ├── meets.tsx            ✅ Meets timeline
+│   │   ├── teams.tsx            ✅ Team scoring
+│   │   └── settings.tsx         ✅ Settings screen
+│   ├── gymnast/[id].tsx         ✅ Gymnast profile & analytics
+│   ├── meet/[id].tsx            ✅ Meet details
+│   ├── level-meets/[id].tsx     ✅ Team scores by level
+│   ├── team-score/[id].tsx      ✅ Team score detail
+│   ├── score-card-creator.tsx   ✅ Social media card creator
+│   ├── add-gymnast.tsx          ✅ Add gymnast screen
+│   ├── add-score.tsx            ✅ Add score screen
+│   ├── cloud-backup.tsx         ✅ Cloud backup management
+│   └── _layout.tsx              ✅ Root layout with auth
+├── __tests__/
+│   ├── __mocks__/
+│   │   └── database.mock.ts     ✅ SQLite mock
+│   ├── theme.test.ts            ✅ Theme tests
+│   ├── teamScores.test.ts       ✅ Team scoring tests
+│   ├── seasonUtils.test.ts      ✅ Season tests
+│   ├── database.gymnasts.test.ts ✅ Database tests
+│   ├── database.meets-scores.test.ts ✅ Database tests
+│   └── integration.workflows.test.ts ✅ Integration tests
+├── components/
+│   ├── ScoreCard.tsx            ✅ Social media score card
+│   └── FloatingActionButton.tsx ✅ FAB component
 ├── config/
-│   └── firebase.ts               ⚠️  Needs configuration
+│   └── firebase.ts              ⚠️  Needs configuration
 ├── contexts/
-│   └── AuthContext.tsx           ✅ Authentication context
+│   ├── AuthContext.tsx          ✅ Authentication context
+│   └── ThemeContext.tsx         ✅ Theme management
 ├── types/
-│   └── index.ts                  ✅ TypeScript types
+│   └── index.ts                 ✅ TypeScript types
 ├── utils/
-│   └── seasonUtils.ts            ✅ Season calculation utilities
-└── PROJECT_PLAN.md               ✅ Detailed project plan
+│   ├── database.ts              ✅ SQLite operations
+│   ├── seasonUtils.ts           ✅ Season calculation
+│   └── teamScores.ts            ✅ Team scoring logic
+├── constants/
+│   ├── theme.ts                 ✅ Design tokens
+│   └── gradients.ts             ✅ Gradient & icon presets
+├── jest.config.js               ✅ Jest configuration
+├── jest.setup.js                ✅ Test setup
+└── PROJECT_PLAN.md              ✅ Detailed project plan
 ```
 
 ## 🐛 Troubleshooting

@@ -111,7 +111,7 @@ User ID: ${user?.uid || 'Unknown'}
       ...CARD_SHADOW
     },
     label: {
-      ...theme.typography.bodyBold,
+      ...theme.typography.h6,
       color: theme.colors.textPrimary,
       marginBottom: theme.spacing.sm
     },
@@ -155,7 +155,7 @@ User ID: ${user?.uid || 'Unknown'}
       ...CARD_SHADOW
     },
     infoTitle: {
-      ...theme.typography.bodyBold,
+      ...theme.typography.h6,
       color: theme.colors.textPrimary,
       marginBottom: theme.spacing.sm
     },

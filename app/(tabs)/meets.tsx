@@ -14,7 +14,7 @@ import {
   View
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
+import { UI_PALETTE, CARD_SHADOW, getCardBorder } from '@/constants/theme';
 import { getMeets } from '@/utils/database';
 
 export default function MeetsScreen() {
@@ -24,7 +24,7 @@ export default function MeetsScreen() {
   const [selectedSeason, setSelectedSeason] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
 
   const fetchMeets = async () => {
@@ -194,7 +194,8 @@ export default function MeetsScreen() {
       marginBottom: theme.spacing.md,
       borderRadius: 28,
       overflow: 'hidden',
-      ...CARD_SHADOW
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
     },
     meetCard: {
       padding: theme.spacing.lg,

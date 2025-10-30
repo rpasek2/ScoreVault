@@ -13,12 +13,14 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Score, Gymnast } from '@/types';
 import { WOMENS_EVENTS, MENS_EVENTS, EVENT_LABELS } from '@/constants/theme';
 import { getScoreById, getGymnastById, updateScore, deleteScore } from '@/utils/database';
 
 export default function EditScoreScreen() {
   const { scoreId } = useLocalSearchParams<{ scoreId: string }>();
+  const { theme } = useTheme();
   const [score, setScore] = useState<Score | null>(null);
   const [gymnastName, setGymnastName] = useState('');
   const [selectedDiscipline, setSelectedDiscipline] = useState<'Womens' | 'Mens'>('Womens');
@@ -141,44 +143,53 @@ export default function EditScoreScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Validate based on discipline
+    // Validate based on discipline - allow partial scores
     if (selectedDiscipline === 'Womens') {
-      const vaultNum = parseFloat(vault);
-      const barsNum = parseFloat(bars);
-      const beamNum = parseFloat(beam);
-      const floorNum = parseFloat(floor);
+      const vaultNum = vault ? parseFloat(vault) : null;
+      const barsNum = bars ? parseFloat(bars) : null;
+      const beamNum = beam ? parseFloat(beam) : null;
+      const floorNum = floor ? parseFloat(floor) : null;
 
-      if (isNaN(vaultNum) || isNaN(barsNum) || isNaN(beamNum) || isNaN(floorNum)) {
+      // Check if at least one score is entered
+      if (vaultNum === null && barsNum === null && beamNum === null && floorNum === null) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Please enter valid scores for all events');
+        Alert.alert('Error', 'Please enter at least one score');
         return;
       }
 
-      if (vaultNum < 0 || vaultNum > 10 || barsNum < 0 || barsNum > 10 ||
-          beamNum < 0 || beamNum > 10 || floorNum < 0 || floorNum > 10) {
+      // Validate only the scores that are filled in
+      if ((vaultNum !== null && (vaultNum < 0 || vaultNum > 10)) ||
+          (barsNum !== null && (barsNum < 0 || barsNum > 10)) ||
+          (beamNum !== null && (beamNum < 0 || beamNum > 10)) ||
+          (floorNum !== null && (floorNum < 0 || floorNum > 10))) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert('Error', 'Scores must be between 0.000 and 10.000');
         return;
       }
     } else {
-      // Mens validation
-      const floorNum = parseFloat(floor);
-      const pommelHorseNum = parseFloat(pommelHorse);
-      const ringsNum = parseFloat(rings);
-      const vaultNum = parseFloat(vault);
-      const parallelBarsNum = parseFloat(parallelBars);
-      const highBarNum = parseFloat(highBar);
+      // Mens validation - allow partial scores
+      const floorNum = floor ? parseFloat(floor) : null;
+      const pommelHorseNum = pommelHorse ? parseFloat(pommelHorse) : null;
+      const ringsNum = rings ? parseFloat(rings) : null;
+      const vaultNum = vault ? parseFloat(vault) : null;
+      const parallelBarsNum = parallelBars ? parseFloat(parallelBars) : null;
+      const highBarNum = highBar ? parseFloat(highBar) : null;
 
-      if (isNaN(floorNum) || isNaN(pommelHorseNum) || isNaN(ringsNum) ||
-          isNaN(vaultNum) || isNaN(parallelBarsNum) || isNaN(highBarNum)) {
+      // Check if at least one score is entered
+      if (floorNum === null && pommelHorseNum === null && ringsNum === null &&
+          vaultNum === null && parallelBarsNum === null && highBarNum === null) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Please enter valid scores for all events');
+        Alert.alert('Error', 'Please enter at least one score');
         return;
       }
 
-      if (floorNum < 0 || floorNum > 15 || pommelHorseNum < 0 || pommelHorseNum > 15 ||
-          ringsNum < 0 || ringsNum > 15 || vaultNum < 0 || vaultNum > 15 ||
-          parallelBarsNum < 0 || parallelBarsNum > 15 || highBarNum < 0 || highBarNum > 15) {
+      // Validate only the scores that are filled in
+      if ((floorNum !== null && (floorNum < 0 || floorNum > 15)) ||
+          (pommelHorseNum !== null && (pommelHorseNum < 0 || pommelHorseNum > 15)) ||
+          (ringsNum !== null && (ringsNum < 0 || ringsNum > 15)) ||
+          (vaultNum !== null && (vaultNum < 0 || vaultNum > 15)) ||
+          (parallelBarsNum !== null && (parallelBarsNum < 0 || parallelBarsNum > 15)) ||
+          (highBarNum !== null && (highBarNum < 0 || highBarNum > 15))) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert('Error', 'Scores must be between 0.000 and 15.000');
         return;
@@ -187,26 +198,26 @@ export default function EditScoreScreen() {
 
     setLoading(true);
     try {
-      // Build scores object based on discipline
+      // Build scores object based on discipline - only include filled scores
       const scores: any = { allAround: parseFloat(allAround) };
       const placements: any = { allAround: aaPlace ? parseInt(aaPlace) : null };
 
       if (selectedDiscipline === 'Womens') {
-        scores.vault = parseFloat(vault);
-        scores.bars = parseFloat(bars);
-        scores.beam = parseFloat(beam);
-        scores.floor = parseFloat(floor);
+        scores.vault = vault ? parseFloat(vault) : undefined;
+        scores.bars = bars ? parseFloat(bars) : undefined;
+        scores.beam = beam ? parseFloat(beam) : undefined;
+        scores.floor = floor ? parseFloat(floor) : undefined;
         placements.vault = vaultPlace ? parseInt(vaultPlace) : null;
         placements.bars = barsPlace ? parseInt(barsPlace) : null;
         placements.beam = beamPlace ? parseInt(beamPlace) : null;
         placements.floor = floorPlace ? parseInt(floorPlace) : null;
       } else {
-        scores.floor = parseFloat(floor);
-        scores.pommelHorse = parseFloat(pommelHorse);
-        scores.rings = parseFloat(rings);
-        scores.vault = parseFloat(vault);
-        scores.parallelBars = parseFloat(parallelBars);
-        scores.highBar = parseFloat(highBar);
+        scores.floor = floor ? parseFloat(floor) : undefined;
+        scores.pommelHorse = pommelHorse ? parseFloat(pommelHorse) : undefined;
+        scores.rings = rings ? parseFloat(rings) : undefined;
+        scores.vault = vault ? parseFloat(vault) : undefined;
+        scores.parallelBars = parallelBars ? parseFloat(parallelBars) : undefined;
+        scores.highBar = highBar ? parseFloat(highBar) : undefined;
         placements.floor = floorPlace ? parseInt(floorPlace) : null;
         placements.pommelHorse = pommelHorsePlace ? parseInt(pommelHorsePlace) : null;
         placements.rings = ringsPlace ? parseInt(ringsPlace) : null;
@@ -259,10 +270,135 @@ export default function EditScoreScreen() {
     );
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      paddingTop: 60,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.textPrimary
+    },
+    cancelButton: {
+      fontSize: 16,
+      color: theme.colors.textSecondary
+    },
+    saveButton: {
+      fontSize: 16,
+      color: theme.colors.primary,
+      fontWeight: '600'
+    },
+    disabled: {
+      opacity: 0.4
+    },
+    content: {
+      padding: 15,
+      paddingBottom: 100
+    },
+    section: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 15
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+      marginBottom: 15
+    },
+    gymnastNameText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      textAlign: 'center',
+      padding: 10
+    },
+    inputGroup: {
+      marginBottom: 15
+    },
+    inputGroupHalf: {
+      flex: 1,
+      marginBottom: 15
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 10
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+      marginBottom: 6
+    },
+    required: {
+      color: theme.colors.error
+    },
+    input: {
+      backgroundColor: theme.colors.surfaceSecondary,
+      padding: 12,
+      borderRadius: 8,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      color: theme.colors.textPrimary
+    },
+    allAroundBox: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.colors.primary,
+      padding: 15,
+      borderRadius: 8,
+      marginTop: 5
+    },
+    allAroundLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.surface
+    },
+    allAroundValue: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.colors.surface
+    },
+    deleteButton: {
+      backgroundColor: theme.colors.surface,
+      padding: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.error,
+      marginBottom: 30
+    },
+    deleteButtonText: {
+      fontSize: 16,
+      color: theme.colors.error,
+      fontWeight: '600'
+    }
+  });
+
   if (loadingData) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#4A90E2" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -475,6 +611,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={vaultPlace}
                     onChangeText={setVaultPlace}
                     keyboardType="number-pad"
@@ -487,6 +624,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={barsPlace}
                     onChangeText={setBarsPlace}
                     keyboardType="number-pad"
@@ -501,6 +639,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={beamPlace}
                     onChangeText={setBeamPlace}
                     keyboardType="number-pad"
@@ -513,6 +652,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={floorPlace}
                     onChangeText={setFloorPlace}
                     keyboardType="number-pad"
@@ -530,6 +670,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={floorPlace}
                     onChangeText={setFloorPlace}
                     keyboardType="number-pad"
@@ -542,6 +683,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={pommelHorsePlace}
                     onChangeText={setPommelHorsePlace}
                     keyboardType="number-pad"
@@ -556,6 +698,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={ringsPlace}
                     onChangeText={setRingsPlace}
                     keyboardType="number-pad"
@@ -568,6 +711,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={vaultPlace}
                     onChangeText={setVaultPlace}
                     keyboardType="number-pad"
@@ -582,6 +726,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={parallelBarsPlace}
                     onChangeText={setParallelBarsPlace}
                     keyboardType="number-pad"
@@ -594,6 +739,7 @@ export default function EditScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={highBarPlace}
                     onChangeText={setHighBarPlace}
                     keyboardType="number-pad"
@@ -609,6 +755,7 @@ export default function EditScoreScreen() {
             <TextInput
               style={styles.input}
               placeholder=""
+              placeholderTextColor={theme.colors.textTertiary}
               value={aaPlace}
               onChangeText={setAaPlace}
               keyboardType="number-pad"
@@ -629,126 +776,3 @@ export default function EditScoreScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5'
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5'
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd'
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333'
-  },
-  cancelButton: {
-    fontSize: 16,
-    color: '#666'
-  },
-  saveButton: {
-    fontSize: 16,
-    color: '#4A90E2',
-    fontWeight: '600'
-  },
-  disabled: {
-    opacity: 0.4
-  },
-  content: {
-    padding: 15,
-    paddingBottom: 100
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 15
-  },
-  gymnastNameText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#4A90E2',
-    textAlign: 'center',
-    padding: 10
-  },
-  inputGroup: {
-    marginBottom: 15
-  },
-  inputGroupHalf: {
-    flex: 1,
-    marginBottom: 15
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 6
-  },
-  required: {
-    color: '#FF3B30'
-  },
-  input: {
-    backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0'
-  },
-  allAroundBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#4A90E2',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 5
-  },
-  allAroundLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff'
-  },
-  allAroundValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff'
-  },
-  deleteButton: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FF3B30',
-    marginBottom: 30
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    fontWeight: '600'
-  }
-});

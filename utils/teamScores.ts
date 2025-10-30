@@ -41,7 +41,9 @@ export const calculateTeamScore = (
         gymnastId: s.gymnastId,
         score: s.scores[event]
       }))
-      .filter(s => s.score !== null && s.score !== undefined && s.score > 0)
+      .filter((s): s is { gymnastId: string; score: number } =>
+        s.score !== null && s.score !== undefined && s.score > 0
+      )
       .sort((a, b) => b.score - a.score)
       .slice(0, topCount); // Top N (or fewer if less than N)
 

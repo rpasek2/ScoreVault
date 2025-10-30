@@ -189,7 +189,7 @@ export default function CloudBackupScreen() {
       ...CARD_SHADOW
     },
     infoTitle: {
-      ...theme.typography.bodyBold,
+      ...theme.typography.h6,
       color: theme.colors.textPrimary,
       marginBottom: theme.spacing.sm
     },
@@ -215,7 +215,7 @@ export default function CloudBackupScreen() {
       flex: 1
     },
     statusValue: {
-      ...theme.typography.bodyBold,
+      ...theme.typography.h6,
       color: theme.colors.textPrimary
     },
     statusValueSuccess: {

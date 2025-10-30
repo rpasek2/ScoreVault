@@ -226,9 +226,6 @@ export default function SettingsScreen() {
         </LinearGradient>
         <Text style={styles.displayName}>{displayName}</Text>
         <Text style={styles.email}>{email}</Text>
-        <View style={styles.accountBadge}>
-          <Text style={styles.accountBadgeText}>Free Account</Text>
-        </View>
       </LinearGradient>
 
       {/* Account Section */}
@@ -329,6 +326,25 @@ export default function SettingsScreen() {
               <View style={styles.menuContent}>
                 <Text style={styles.menuLabel}>Import Data</Text>
                 <Text style={styles.menuSubtext}>Restore from JSON backup</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuItemWrapper}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/hidden-gymnasts')}>
+            <LinearGradient
+              colors={theme.colors.cardGradient}
+              style={styles.menuItem}>
+              <View style={styles.menuIconContainer}>
+                <Text style={styles.menuIcon}>👁️</Text>
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuLabel}>Hidden Gymnasts</Text>
+                <Text style={styles.menuSubtext}>Manage inactive roster</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>

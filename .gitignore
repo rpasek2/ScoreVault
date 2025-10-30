@@ -42,3 +42,12 @@ app-example
 # generated native folders
 /ios
 /android
+
+# test coverage
+coverage/
+
+# temporary files
+.tmp.driveupload/
+
+# editor config
+.claude/
