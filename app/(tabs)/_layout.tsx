@@ -16,6 +16,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
+          paddingHorizontal: 16,
         },
         headerStyle: {
           backgroundColor: theme.colors.surface,

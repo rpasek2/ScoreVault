@@ -1,14 +1,13 @@
+import { useTheme } from '@/contexts/ThemeContext';
+import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { AppTheme } from '@/constants/theme';
 
 interface FAQItem {
   question: string;
@@ -26,7 +25,7 @@ const FAQ_DATA: FAQItem[] = [
   },
   {
     question: 'How do I add a meet?',
-    answer: 'Go to the Meets tab and tap the + button. Enter the meet name, date, and optionally the location and season. Meets are automatically organized by date.'
+    answer: 'Go to the Meets tab and tap the + button. Enter the meet name, date, and optionally the location. Meets are automatically organized by date.'
   },
   {
     question: 'How do I add scores?',
@@ -61,6 +60,14 @@ const FAQ_DATA: FAQItem[] = [
     answer: 'The analytics show:\n\n• Personal Records for each event\n• Average scores across all competitions\n• Score trend line charts (when you have 2+ meets)\n• Event-specific performance tracking\n\nThese help you see progress over time and identify strong/weak events.'
   },
   {
+    question: 'How do I view team scores?',
+    answer: 'Go to the Teams tab to see team scoring by level and discipline. Tap any level to view team scores for all meets. The app automatically calculates team totals using the top 3 scores per event (or top 5 for Women\'s Levels 1-5). You can expand each meet to see detailed score breakdowns and which scores are counting toward the team total.'
+  },
+  {
+    question: 'What are team analytics?',
+    answer: 'Team analytics show:\n\n• Performance trend charts over time\n• Average team scores per event (only counting meets with full teams)\n• Best team scores achieved\n• Event-by-event breakdowns\n\nThese help coaches track team performance and identify areas for improvement.'
+  },
+  {
     question: 'Can I track multiple gymnasts?',
     answer: 'Yes! You can add as many gymnasts as you need. Each gymnast has their own profile with individual analytics and score tracking. This is perfect for parents with multiple children or coaches tracking a team.'
   },
@@ -87,13 +94,110 @@ const FAQ_DATA: FAQItem[] = [
 ];
 
 export default function HelpScreen() {
-  const router = useRouter();
+  const { theme } = useTheme();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const handleQuestionPress = (index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setExpandedIndex(expandedIndex === index ? null : index);
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background
+    },
+    content: {
+      flex: 1
+    },
+    introSection: {
+      backgroundColor: theme.colors.surface,
+      padding: theme.spacing.xl,
+      marginBottom: theme.spacing.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border
+    },
+    introTitle: {
+      ...theme.typography.h3,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.md,
+      fontWeight: '600'
+    },
+    introText: {
+      ...theme.typography.body,
+      color: theme.colors.textSecondary,
+      lineHeight: 22
+    },
+    faqSection: {
+      padding: theme.spacing.base
+    },
+    sectionTitle: {
+      ...theme.typography.h4,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm,
+      fontWeight: '600'
+    },
+    faqItem: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.lg,
+      marginBottom: theme.spacing.md,
+      overflow: 'hidden',
+      ...theme.shadows.medium
+    },
+    questionContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.spacing.lg,
+      paddingRight: theme.spacing.base
+    },
+    question: {
+      ...theme.typography.body,
+      color: theme.colors.textPrimary,
+      fontWeight: '600',
+      flex: 1,
+      paddingRight: theme.spacing.md
+    },
+    expandIcon: {
+      ...theme.typography.h3,
+      color: theme.colors.primary,
+      fontWeight: '300',
+      width: 24,
+      textAlign: 'center'
+    },
+    answerContainer: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingBottom: theme.spacing.lg,
+      paddingTop: 0,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.borderLight
+    },
+    answer: {
+      ...theme.typography.body,
+      color: theme.colors.textSecondary,
+      lineHeight: 22,
+      marginTop: theme.spacing.md
+    },
+    contactSection: {
+      backgroundColor: theme.colors.surfaceSecondary,
+      padding: theme.spacing.xl,
+      margin: theme.spacing.base,
+      borderRadius: theme.borderRadius.lg,
+      marginBottom: theme.spacing.xxxl
+    },
+    contactTitle: {
+      ...theme.typography.h5,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.sm,
+      fontWeight: '600'
+    },
+    contactText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textSecondary,
+      lineHeight: 20
+    }
+  });
 
   return (
     <View style={styles.container}>
@@ -102,8 +206,8 @@ export default function HelpScreen() {
         <View style={styles.introSection}>
           <Text style={styles.introTitle}>Welcome to ScoreVault! 📊</Text>
           <Text style={styles.introText}>
-            ScoreVault helps you track gymnastics scores, view performance analytics, and monitor progress over time.
-            Tap any question below to learn more.
+            ScoreVault helps you track individual gymnast scores, view performance analytics, and monitor team progress over time.
+            Whether tracking one athlete or managing a whole team, tap any question below to learn more.
           </Text>
         </View>
 
@@ -143,100 +247,3 @@ export default function HelpScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: AppTheme.colors.background
-  },
-  content: {
-    flex: 1
-  },
-  introSection: {
-    backgroundColor: AppTheme.colors.surface,
-    padding: AppTheme.spacing.xl,
-    marginBottom: AppTheme.spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: AppTheme.colors.border
-  },
-  introTitle: {
-    ...AppTheme.typography.h3,
-    color: AppTheme.colors.textPrimary,
-    marginBottom: AppTheme.spacing.md,
-    fontWeight: '600'
-  },
-  introText: {
-    ...AppTheme.typography.body,
-    color: AppTheme.colors.textSecondary,
-    lineHeight: 22
-  },
-  faqSection: {
-    padding: AppTheme.spacing.base
-  },
-  sectionTitle: {
-    ...AppTheme.typography.h4,
-    color: AppTheme.colors.textPrimary,
-    marginBottom: AppTheme.spacing.md,
-    paddingHorizontal: AppTheme.spacing.sm,
-    fontWeight: '600'
-  },
-  faqItem: {
-    backgroundColor: AppTheme.colors.surface,
-    borderRadius: AppTheme.borderRadius.lg,
-    marginBottom: AppTheme.spacing.md,
-    overflow: 'hidden',
-    ...AppTheme.shadows.medium
-  },
-  questionContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: AppTheme.spacing.lg,
-    paddingRight: AppTheme.spacing.base
-  },
-  question: {
-    ...AppTheme.typography.body,
-    color: AppTheme.colors.textPrimary,
-    fontWeight: '600',
-    flex: 1,
-    paddingRight: AppTheme.spacing.md
-  },
-  expandIcon: {
-    ...AppTheme.typography.h3,
-    color: AppTheme.colors.primary,
-    fontWeight: '300',
-    width: 24,
-    textAlign: 'center'
-  },
-  answerContainer: {
-    paddingHorizontal: AppTheme.spacing.lg,
-    paddingBottom: AppTheme.spacing.lg,
-    paddingTop: 0,
-    borderTopWidth: 1,
-    borderTopColor: AppTheme.colors.borderLight
-  },
-  answer: {
-    ...AppTheme.typography.body,
-    color: AppTheme.colors.textSecondary,
-    lineHeight: 22,
-    marginTop: AppTheme.spacing.md
-  },
-  contactSection: {
-    backgroundColor: AppTheme.colors.surfaceSecondary,
-    padding: AppTheme.spacing.xl,
-    margin: AppTheme.spacing.base,
-    borderRadius: AppTheme.borderRadius.lg,
-    marginBottom: AppTheme.spacing.xxxl
-  },
-  contactTitle: {
-    ...AppTheme.typography.h5,
-    color: AppTheme.colors.textPrimary,
-    marginBottom: AppTheme.spacing.sm,
-    fontWeight: '600'
-  },
-  contactText: {
-    ...AppTheme.typography.bodySmall,
-    color: AppTheme.colors.textSecondary,
-    lineHeight: 20
-  }
-});

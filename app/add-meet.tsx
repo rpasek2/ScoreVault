@@ -174,6 +174,7 @@ export default function AddMeetScreen() {
           <TextInput
             style={styles.input}
             placeholder="e.g., State Championships"
+            placeholderTextColor={theme.colors.textTertiary}
             value={name}
             onChangeText={setName}
             editable={!loading}
@@ -207,6 +208,7 @@ export default function AddMeetScreen() {
           <TextInput
             style={styles.input}
             placeholder="e.g., City Arena"
+            placeholderTextColor={theme.colors.textTertiary}
             value={location}
             onChangeText={setLocation}
             editable={!loading}

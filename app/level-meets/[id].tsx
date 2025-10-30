@@ -6,25 +6,41 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { LineChart } from 'react-native-chart-kit';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
-import { CARD_SHADOW } from '@/constants/theme';
+import { CARD_SHADOW, EVENT_LABELS, EventKey, getCardBorder } from '@/constants/theme';
 import { getGymnasts, getMeets, getScores } from '@/utils/database';
-import { calculateTeamScore, formatTeamScore } from '@/utils/teamScores';
+import {
+  calculateTeamScore,
+  formatTeamScore,
+  getEventDisplayName,
+  isCountingScore,
+  MENS_EVENTS,
+  WOMENS_EVENTS
+} from '@/utils/teamScores';
 import { Gymnast, Meet, Score } from '@/types';
+
+interface GymnastWithScore {
+  gymnast: Gymnast;
+  score: Score;
+}
 
 interface MeetWithTeamScore {
   meet: Meet;
   teamScore: number;
   gymnastCount: number;
+  teamScoreResult: any;
+  gymnastsWithScores: GymnastWithScore[];
 }
 
 export default function LevelMeetsScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const level = params.level as string;
@@ -33,6 +49,8 @@ export default function LevelMeetsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [meetsWithScores, setMeetsWithScores] = useState<MeetWithTeamScore[]>([]);
+  const [countingScoreCount, setCountingScoreCount] = useState<3 | 5>(3);
+  const [selectedEvent, setSelectedEvent] = useState<string>('allAround');
 
   const fetchData = async () => {
     try {
@@ -70,12 +88,27 @@ export default function LevelMeetsScreen() {
           const meet = meets.find(m => m.id === meetId);
           if (!meet) return null;
 
-          const { totalScore } = calculateTeamScore(meetScores, discipline, gymnasts);
+          const teamScoreResult = calculateTeamScore(meetScores, discipline, gymnasts, countingScoreCount);
+
+          // Build gymnasts with scores array
+          const gymnastsWithScoresData: GymnastWithScore[] = meetScores
+            .map(score => {
+              const gymnast = gymnasts.find(g => g.id === score.gymnastId);
+              if (!gymnast) return null;
+              return { gymnast, score };
+            })
+            .filter((item): item is GymnastWithScore => item !== null)
+            .sort((a, b) => {
+              // Sort by all-around score descending
+              return b.score.scores.allAround - a.score.scores.allAround;
+            });
 
           return {
             meet,
-            teamScore: totalScore,
-            gymnastCount: new Set(meetScores.map(s => s.gymnastId)).size
+            teamScore: teamScoreResult.totalScore,
+            gymnastCount: new Set(meetScores.map(s => s.gymnastId)).size,
+            teamScoreResult,
+            gymnastsWithScores: gymnastsWithScoresData
           };
         })
         .filter((m): m is MeetWithTeamScore => m !== null)
@@ -106,6 +139,25 @@ export default function LevelMeetsScreen() {
     fetchData();
   }, [level, discipline]);
 
+  // Recalculate team scores when counting score count changes
+  useEffect(() => {
+    if (meetsWithScores.length === 0) return;
+
+    const updatedMeets = meetsWithScores.map(meetItem => {
+      const scores = meetItem.gymnastsWithScores.map(item => item.score);
+      const gymnasts = meetItem.gymnastsWithScores.map(item => item.gymnast);
+      const teamScoreResult = calculateTeamScore(scores, discipline, gymnasts, countingScoreCount);
+
+      return {
+        ...meetItem,
+        teamScore: teamScoreResult.totalScore,
+        teamScoreResult
+      };
+    });
+
+    setMeetsWithScores(updatedMeets);
+  }, [countingScoreCount]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchData();
@@ -115,7 +167,12 @@ export default function LevelMeetsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
       pathname: '/team-score/[id]',
-      params: { id: `${level}|${discipline}|${meetId}`, level, discipline, meetId }
+      params: {
+        id: `${level}-${discipline}-${meetId}`,
+        level,
+        discipline,
+        meetId
+      }
     });
   };
 
@@ -135,16 +192,17 @@ export default function LevelMeetsScreen() {
     },
     header: {
       backgroundColor: theme.colors.surface,
-      padding: theme.spacing.lg,
-      paddingTop: 60,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.lg,
       borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border
+      borderBottomColor: theme.colors.border,
+      justifyContent: 'center'
     },
     headerTitle: {
       ...theme.typography.h3,
       color: theme.colors.textPrimary,
       fontWeight: '700',
-      marginBottom: theme.spacing.xs
+      marginBottom: 2
     },
     headerSubtitle: {
       ...theme.typography.bodySmall,
@@ -159,13 +217,15 @@ export default function LevelMeetsScreen() {
       flex: 1
     },
     scrollContent: {
-      padding: theme.spacing.base
+      paddingBottom: theme.spacing.xxxl
     },
     meetCardWrapper: {
       marginBottom: theme.spacing.md,
+      marginHorizontal: theme.spacing.base,
       borderRadius: 16,
       overflow: 'hidden',
-      ...CARD_SHADOW
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
     },
     meetCard: {
       padding: theme.spacing.lg
@@ -246,6 +306,129 @@ export default function LevelMeetsScreen() {
       color: theme.colors.textSecondary,
       textAlign: 'center',
       lineHeight: 20
+    },
+    chevronIcon: {
+      fontSize: 20,
+      color: theme.colors.textTertiary,
+      marginLeft: theme.spacing.sm
+    },
+    analyticsSection: {
+      marginHorizontal: theme.spacing.base,
+      marginBottom: theme.spacing.md,
+      padding: theme.spacing.lg,
+      borderRadius: 28,
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
+    },
+    sectionTitleAnalytics: {
+      ...theme.typography.h4,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.lg,
+      textAlign: 'center'
+    },
+    chartContainer: {
+      marginBottom: theme.spacing.lg,
+      alignItems: 'center'
+    },
+    chartLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      marginTop: theme.spacing.xs
+    },
+    eventAverages: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginBottom: theme.spacing.lg,
+      gap: theme.spacing.sm
+    },
+    eventAveragesWomens: {
+      gap: theme.spacing.xs
+    },
+    eventAvg: {
+      minWidth: '30%',
+      flex: 1,
+      alignItems: 'center',
+      padding: theme.spacing.md,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border
+    },
+    eventAvgWomens: {
+      minWidth: '24%',
+      maxWidth: '24%',
+      flex: 0
+    },
+    eventAvgSelected: {
+      backgroundColor: theme.colors.primary + '15',
+      borderWidth: 2,
+      borderColor: theme.colors.primary
+    },
+    eventAvgLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      marginBottom: theme.spacing.xs,
+      fontSize: 10,
+      textTransform: 'uppercase',
+      height: 24,
+      textAlign: 'center'
+    },
+    eventAvgValue: {
+      ...theme.typography.h5,
+      color: theme.colors.textPrimary,
+      fontWeight: '700'
+    },
+    eventAvgValueSelected: {
+      color: theme.colors.primary
+    },
+    personalRecords: {
+      marginTop: theme.spacing.base
+    },
+    prTitle: {
+      ...theme.typography.h5,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.md,
+      fontWeight: '600',
+      textAlign: 'center'
+    },
+    prGrid: {
+      gap: theme.spacing.sm
+    },
+    prItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.spacing.md,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.primary
+    },
+    prItemFull: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.spacing.lg,
+      backgroundColor: theme.colors.primary + '20',
+      borderRadius: theme.borderRadius.lg,
+      borderWidth: 0
+    },
+    prEvent: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textSecondary,
+      fontWeight: '600'
+    },
+    prScore: {
+      ...theme.typography.h5,
+      color: theme.colors.textPrimary,
+      fontWeight: '700'
+    },
+    prScoreLarge: {
+      ...theme.typography.h3,
+      color: theme.colors.primary
     }
   });
 
@@ -258,6 +441,55 @@ export default function LevelMeetsScreen() {
   }
 
   const disciplineDisplay = discipline === 'Womens' ? "Women's" : "Men's";
+  const events = discipline === 'Womens' ? WOMENS_EVENTS : MENS_EVENTS;
+
+  // Helper function to check if a meet has enough competitors for an event
+  const hasMinimumCompetitors = (meet: MeetWithTeamScore, event: string): boolean => {
+    // Count how many gymnasts competed in this event
+    const eventScores = meet.gymnastsWithScores.filter(
+      item => {
+        const score = item.score.scores[event as keyof typeof item.score.scores];
+        return score != null && score > 0;
+      }
+    );
+    return eventScores.length >= countingScoreCount;
+  };
+
+  // Helper function to check if a meet has minimum competitors for ALL events
+  const hasMinimumCompetitorsAllEvents = (meet: MeetWithTeamScore): boolean => {
+    return events.every(event => hasMinimumCompetitors(meet, event));
+  };
+
+  // Filter meets that have full teams (all events have minimum competitors)
+  const fullTeamMeets = meetsWithScores.filter(hasMinimumCompetitorsAllEvents);
+
+  // Calculate analytics data
+  const totalMeets = meetsWithScores.length;
+  const totalFullTeamMeets = fullTeamMeets.length;
+
+  const avgTeamScore = totalFullTeamMeets > 0
+    ? fullTeamMeets.reduce((sum, m) => sum + m.teamScore, 0) / totalFullTeamMeets
+    : 0;
+  const bestTeamScore = totalMeets > 0
+    ? Math.max(...meetsWithScores.map(m => m.teamScore))
+    : 0;
+
+  // Calculate event averages across meets with minimum competitors for that event
+  const eventAverages: any = {};
+  events.forEach(event => {
+    const meetsWithMinCompetitors = meetsWithScores.filter(m => hasMinimumCompetitors(m, event));
+    eventAverages[event] = meetsWithMinCompetitors.length > 0
+      ? meetsWithMinCompetitors.reduce((sum, m) => sum + (m.teamScoreResult.teamScores[event] || 0), 0) / meetsWithMinCompetitors.length
+      : 0;
+  });
+
+  // Calculate best team scores per event (use all meets for bests)
+  const bestEventScores: any = { allAround: bestTeamScore };
+  events.forEach(event => {
+    bestEventScores[event] = totalMeets > 0
+      ? Math.max(...meetsWithScores.map(m => m.teamScoreResult.teamScores[event] || 0))
+      : 0;
+  });
 
   return (
     <View style={styles.container}>
@@ -286,6 +518,7 @@ export default function LevelMeetsScreen() {
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -293,43 +526,183 @@ export default function LevelMeetsScreen() {
               tintColor={theme.colors.primary}
             />
           }>
-          {meetsWithScores.map((item) => (
-            <View key={item.meet.id} style={styles.meetCardWrapper}>
-              <TouchableOpacity
-                onPress={() => handleMeetPress(item.meet.id)}
-                activeOpacity={0.7}>
-                <LinearGradient
-                  colors={theme.colors.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.meetCard}>
-                  <View style={styles.meetHeader}>
-                    <Text style={styles.meetName}>{item.meet.name}</Text>
-                    <View style={styles.teamScoreBadge}>
-                      <Text style={styles.teamScoreLabel}>TEAM SCORE</Text>
-                      <Text style={styles.teamScoreValue}>{formatTeamScore(item.teamScore)}</Text>
-                    </View>
-                  </View>
+          {/* Analytics Section */}
+          {meetsWithScores.length > 0 && (
+        <LinearGradient
+          colors={theme.colors.analyticsCardGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.analyticsSection}>
+          <Text style={styles.sectionTitleAnalytics}>Team Performance Analytics</Text>
 
-                  <View style={styles.meetMeta}>
-                    <Text style={styles.metaText}>📅 {formatDate(item.meet.date)}</Text>
-                    {item.meet.location && (
-                      <>
-                        <Text style={styles.separator}>•</Text>
-                        <Text style={styles.metaText}>📍 {item.meet.location}</Text>
-                      </>
-                    )}
-                  </View>
-
-                  <View style={[styles.meetMeta, { marginTop: theme.spacing.xs }]}>
-                    <Text style={styles.metaText}>
-                      {item.gymnastCount} {item.gymnastCount === 1 ? 'gymnast' : 'gymnasts'} competed
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+          {/* Score Progress Chart */}
+          {((selectedEvent === 'allAround' && fullTeamMeets.length >= 2) ||
+            (selectedEvent !== 'allAround' && meetsWithScores.filter(m => hasMinimumCompetitors(m, selectedEvent)).length >= 2)) && (
+            <View style={styles.chartContainer}>
+              <LineChart
+                data={{
+                  labels: selectedEvent === 'allAround'
+                    ? fullTeamMeets.slice(0, 8).reverse().map((_, index) => '')
+                    : meetsWithScores.filter(m => hasMinimumCompetitors(m, selectedEvent)).slice(0, 8).reverse().map((_, index) => ''),
+                  datasets: [{
+                    data: selectedEvent === 'allAround'
+                      ? fullTeamMeets.slice(0, 8).reverse().map(m => m.teamScore)
+                      : meetsWithScores.filter(m => hasMinimumCompetitors(m, selectedEvent)).slice(0, 8).reverse().map(m => m.teamScoreResult.teamScores[selectedEvent] || 0)
+                  }]
+                }}
+                width={Dimensions.get('window').width - 64}
+                height={180}
+                chartConfig={{
+                  backgroundColor: theme.colors.surface,
+                  backgroundGradientFrom: theme.colors.analyticsCardGradient[0],
+                  backgroundGradientTo: theme.colors.analyticsCardGradient[1],
+                  decimalPlaces: 1,
+                  color: () => theme.colors.primary,
+                  labelColor: () => theme.colors.textSecondary,
+                  style: {
+                    borderRadius: theme.borderRadius.md
+                  },
+                  propsForDots: {
+                    r: '4',
+                    strokeWidth: '2',
+                    stroke: theme.colors.primary
+                  },
+                  propsForBackgroundLines: {
+                    strokeDasharray: '',
+                    stroke: theme.colors.border,
+                    strokeWidth: 1
+                  }
+                }}
+                bezier
+                style={{
+                  marginVertical: theme.spacing.sm,
+                  borderRadius: theme.borderRadius.md
+                }}
+              />
+              <Text style={styles.chartLabel}>
+                {selectedEvent === 'allAround' ? 'Team Total' : EVENT_LABELS[selectedEvent as EventKey]} Score Trend (Last 8 Meets)
+              </Text>
             </View>
-          ))}
+          )}
+
+          {/* Event Averages */}
+          <View style={[
+            styles.eventAverages,
+            events.length === 4 && styles.eventAveragesWomens
+          ]}>
+            {events.map(event => (
+              <TouchableOpacity
+                key={event}
+                style={[
+                  styles.eventAvg,
+                  events.length === 4 && styles.eventAvgWomens,
+                  selectedEvent === event && styles.eventAvgSelected
+                ]}
+                onPress={() => {
+                  setSelectedEvent(event);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}>
+                <Text
+                  style={styles.eventAvgLabel}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}>
+                  {EVENT_LABELS[event]} AVG
+                </Text>
+                <Text style={[styles.eventAvgValue, selectedEvent === event && styles.eventAvgValueSelected]}>
+                  {formatTeamScore(eventAverages[event])}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* All-Around Toggle */}
+          <TouchableOpacity
+            style={[
+              styles.eventAvg,
+              { width: '100%', marginBottom: theme.spacing.lg, paddingVertical: theme.spacing.lg },
+              selectedEvent === 'allAround' && styles.eventAvgSelected
+            ]}
+            onPress={() => {
+              setSelectedEvent('allAround');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.7}>
+            <Text style={styles.eventAvgLabel}>Team Total AVG</Text>
+            <Text style={[styles.eventAvgValue, selectedEvent === 'allAround' && styles.eventAvgValueSelected]}>
+              {formatTeamScore(avgTeamScore)}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Best Team Scores */}
+          <View style={styles.personalRecords}>
+            <Text style={styles.prTitle}>Best Team Scores</Text>
+            <View style={styles.prGrid}>
+              {events.map(event => (
+                <View key={event} style={styles.prItem}>
+                  <Text style={styles.prEvent}>{EVENT_LABELS[event]}</Text>
+                  <Text style={styles.prScore}>{formatTeamScore(bestEventScores[event])}</Text>
+                </View>
+              ))}
+              <View style={styles.prItemFull}>
+                <Text style={styles.prEvent}>Team Total</Text>
+                <Text style={[styles.prScore, styles.prScoreLarge]}>
+                  {formatTeamScore(bestEventScores.allAround)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+          )}
+
+          {/* Meets List */}
+          {meetsWithScores.map((item) => {
+            return (
+              <View key={item.meet.id} style={styles.meetCardWrapper}>
+                <TouchableOpacity
+                  onPress={() => handleMeetPress(item.meet.id)}
+                  activeOpacity={0.7}>
+                  <LinearGradient
+                    colors={theme.colors.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.meetCard}>
+                    <View style={styles.meetHeader}>
+                      <Text style={styles.meetName}>{item.meet.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+                        <View style={styles.teamScoreBadge}>
+                          <Text style={styles.teamScoreLabel}>TEAM SCORE</Text>
+                          <Text style={styles.teamScoreValue}>{formatTeamScore(item.teamScore)}</Text>
+                        </View>
+                        <Text style={styles.chevronIcon}>›</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.meetMeta}>
+                      <Text style={styles.metaText}>📅 {formatDate(item.meet.date)}</Text>
+                      {item.meet.location && (
+                        <>
+                          <Text style={styles.separator}>•</Text>
+                          <Text style={styles.metaText}>📍 {item.meet.location}</Text>
+                        </>
+                      )}
+                    </View>
+
+                    <View style={[styles.meetMeta, { marginTop: theme.spacing.xs }]}>
+                      <Text style={styles.metaText}>
+                        {item.gymnastCount} {item.gymnastCount === 1 ? 'gymnast' : 'gymnasts'} competed
+                      </Text>
+                      <Text style={styles.separator}>•</Text>
+                      <Text style={[styles.metaText, { color: theme.colors.primary }]}>
+                        Tap to view details
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </ScrollView>
       )}
     </View>

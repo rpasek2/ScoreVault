@@ -1,12 +1,12 @@
-﻿import { CARD_SHADOW, EVENT_LABELS, EventKey, getAAScoreColor, getInitials, getOrdinal, getPlacementColor, getScoreColor, MENS_EVENTS, SOFT_SHADOW, WOMENS_EVENTS } from '@/constants/theme';
+﻿import { CARD_SHADOW, EVENT_LABELS, EventKey, getAAScoreColor, getInitials, getOrdinal, getPlacementColor, getScoreColor, MENS_EVENTS, SOFT_SHADOW, WOMENS_EVENTS, getCardBorder } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Gymnast, Meet, Score, Timestamp } from '@/types';
 import { formatDate, formatScore } from '@/utils/seasonUtils';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { getGymnastById, getMeets, getScoresByGymnast, deleteGymnast, updateGymnast } from '@/utils/database';
+import { useLocalSearchParams, useNavigation, useRouter, useFocusEffect } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getGymnastById, getMeets, getScoresByGymnast, deleteGymnast, updateGymnast, hideGymnast } from '@/utils/database';
 import {
   ActivityIndicator,
   Alert,
@@ -54,61 +54,63 @@ export default function GymnastProfileScreen() {
   const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventKey | 'allAround'>('allAround');
   const [showAllLevels, setShowAllLevels] = useState(false);
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
 
-  useEffect(() => {
+  const fetchGymnastData = useCallback(async () => {
     if (!id) return;
 
-    const fetchGymnastData = async () => {
-      try {
-        // Fetch gymnast details from local database
-        const gymnastData = await getGymnastById(id);
-        if (gymnastData) {
-          setGymnast(gymnastData);
-          navigation.setOptions({ title: gymnastData.name });
+    try {
+      // Fetch gymnast details from local database
+      const gymnastData = await getGymnastById(id);
+      if (gymnastData) {
+        setGymnast(gymnastData);
+        navigation.setOptions({ title: gymnastData.name });
 
-          // Fetch all meets to map IDs to names
-          const allMeets = await getMeets();
-          const meetsMap: { [key: string]: Meet } = {};
-          allMeets.forEach((meet) => {
-            meetsMap[meet.id] = meet;
-          });
+        // Fetch all meets to map IDs to names
+        const allMeets = await getMeets();
+        const meetsMap: { [key: string]: Meet } = {};
+        allMeets.forEach((meet) => {
+          meetsMap[meet.id] = meet;
+        });
 
-          // Fetch all scores for this gymnast
-          const scoresData = await getScoresByGymnast(id);
-          const scoresList: ScoreWithMeet[] = scoresData.map((score) => {
-            const meet = meetsMap[score.meetId];
-            return {
-              ...score,
-              meetName: meet?.name || 'Unknown Meet',
-              meetDate: meet?.date || { toMillis: () => 0, toDate: () => new Date() } as Timestamp
-            };
-          }).filter(score => score.meetName !== 'Unknown Meet');
+        // Fetch all scores for this gymnast
+        const scoresData = await getScoresByGymnast(id);
+        const scoresList: ScoreWithMeet[] = scoresData.map((score) => {
+          const meet = meetsMap[score.meetId];
+          return {
+            ...score,
+            meetName: meet?.name || 'Unknown Meet',
+            meetDate: meet?.date || { toMillis: () => 0, toDate: () => new Date() } as Timestamp
+          };
+        }).filter(score => score.meetName !== 'Unknown Meet');
 
-          // Sort by date (most recent first)
-          scoresList.sort((a, b) => {
-            const dateA = a.meetDate.toMillis?.() || 0;
-            const dateB = b.meetDate.toMillis?.() || 0;
-            return dateB - dateA;
-          });
+        // Sort by date (most recent first)
+        scoresList.sort((a, b) => {
+          const dateA = a.meetDate.toMillis?.() || 0;
+          const dateB = b.meetDate.toMillis?.() || 0;
+          return dateB - dateA;
+        });
 
-          setScores(scoresList);
-        } else {
-          Alert.alert('Error', 'Gymnast not found');
-          router.back();
-        }
-      } catch (error) {
-        console.error('Error fetching gymnast:', error);
-        Alert.alert('Error', 'Failed to load gymnast profile');
-      } finally {
-        setLoading(false);
+        setScores(scoresList);
+      } else {
+        Alert.alert('Error', 'Gymnast not found');
+        router.back();
       }
-    };
-
-    fetchGymnastData();
+    } catch (error) {
+      console.error('Error fetching gymnast:', error);
+      Alert.alert('Error', 'Failed to load gymnast profile');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchGymnastData();
+    }, [fetchGymnastData])
+  );
 
   const styles = StyleSheet.create({
   container: {
@@ -133,7 +135,8 @@ export default function GymnastProfileScreen() {
     borderBottomRightRadius: 32,
     marginBottom: theme.spacing.lg,
     marginHorizontal: theme.spacing.base,
-    ...CARD_SHADOW
+    ...CARD_SHADOW,
+    ...getCardBorder(isDark)
   },
   deleteButtonGymnast: {
     position: 'absolute',
@@ -152,6 +155,24 @@ export default function GymnastProfileScreen() {
   deleteButtonTextGymnast: {
     fontSize: 20,
     color: theme.colors.error
+  },
+  hideButtonGymnast: {
+    position: 'absolute',
+    top: theme.spacing.lg,
+    left: theme.spacing.lg + 52,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0,
+    ...SOFT_SHADOW,
+    zIndex: 10
+  },
+  hideButtonTextGymnast: {
+    fontSize: 20,
+    color: theme.colors.warning
   },
   editButtonGymnast: {
     position: 'absolute',
@@ -228,14 +249,16 @@ export default function GymnastProfileScreen() {
   },
   sectionTitle: {
     ...theme.typography.h4,
-    color: theme.colors.textPrimary
+    color: theme.colors.textPrimary,
+    textAlign: 'center'
   },
   analyticsSection: {
     marginHorizontal: theme.spacing.base,
     marginBottom: theme.spacing.base,
     padding: theme.spacing.lg,
     borderRadius: 28,
-    ...CARD_SHADOW
+    ...CARD_SHADOW,
+    ...getCardBorder(isDark)
   },
   chartContainer: {
     marginBottom: theme.spacing.lg,
@@ -300,7 +323,8 @@ export default function GymnastProfileScreen() {
     ...theme.typography.h5,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
-    fontWeight: '600'
+    fontWeight: '600',
+    textAlign: 'center'
   },
   prGrid: {
     gap: theme.spacing.sm
@@ -376,7 +400,8 @@ export default function GymnastProfileScreen() {
     marginBottom: theme.spacing.md,
     borderRadius: 28,
     backgroundColor: 'transparent',
-    ...CARD_SHADOW
+    ...CARD_SHADOW,
+    ...getCardBorder(isDark)
   },
   scoreCardTouchable: {
     borderRadius: 28,
@@ -530,7 +555,8 @@ export default function GymnastProfileScreen() {
     padding: theme.spacing.xl,
     width: '100%',
     maxWidth: 400,
-    ...CARD_SHADOW
+    ...CARD_SHADOW,
+    ...getCardBorder(isDark)
   },
   modalTitle: {
     ...theme.typography.h4,
@@ -652,6 +678,35 @@ export default function GymnastProfileScreen() {
     });
   };
 
+  const handleHideGymnast = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Hide Gymnast',
+      `Hide "${gymnast?.name}"? They will be removed from the active roster but all their scores will remain. You can unhide them from Settings.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        },
+        {
+          text: 'Hide',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await hideGymnast(id);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              router.back();
+            } catch (error: any) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert('Error', error.message || 'Failed to hide gymnast');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleDeleteGymnast = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
@@ -758,6 +813,13 @@ export default function GymnastProfileScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}>
+        <TouchableOpacity
+          style={styles.hideButtonGymnast}
+          onPress={handleHideGymnast}
+          activeOpacity={0.7}>
+          <Text style={styles.hideButtonTextGymnast}>👁️‍🗨️</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.deleteButtonGymnast}
           onPress={handleDeleteGymnast}

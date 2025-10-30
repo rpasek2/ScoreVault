@@ -4,7 +4,7 @@ A mobile application for parents to track and manage their gymnast's competition
 
 ## Overview
 
-ScoreVault is a local-first mobile app designed for gymnastics parents who want to keep detailed records of their child's competition scores, placements, and performance over time. Built with React Native and Expo, the app works completely offline and offers optional cloud backup.
+ScoreVault is a local-first mobile app designed for gymnastics parents and coaches who want to keep detailed records of individual gymnast scores and team performance. Track competition results, placements, and analytics over time. Built with React Native and Expo, the app works completely offline and offers optional cloud backup.
 
 ## Features
 
@@ -13,6 +13,7 @@ ScoreVault is a local-first mobile app designed for gymnastics parents who want 
 - **Score Tracking**: Record detailed scores for all gymnastics events with automatic all-around calculation
 - **Meet Management**: Organize competitions by season with location and date tracking
 - **Performance Analytics**: View trends, averages, and personal records for each event
+- **Team Scoring**: Track team scores by level and discipline with analytics, event breakdowns, and counting score visualization
 - **Dual Discipline Support**: Full support for both Women's and Men's gymnastics scoring
 
 ### Data Management ✅
@@ -23,9 +24,14 @@ ScoreVault is a local-first mobile app designed for gymnastics parents who want 
 
 ### Social Sharing ✅
 - **Score Cards**: Generate beautiful, shareable score cards for social media
-- **Customization**: Choose from gradient backgrounds or use custom photos
+- **Rich Customization**:
+  - 10 gradient themes (Purple, Ocean, Sunset, Forest, Royal, Fire, Sky Blue, Rose Pink, Midnight, Crimson)
+  - Custom photo backgrounds
+  - 6 decorative icon styles (None, Stars, Trophy, Medal, Fire, Sparkles)
+  - Dynamic accent colors matching selected gradient
 - **Multiple Formats**: Support for Instagram posts (1:1) and stories (9:16)
 - **Direct Sharing**: Share to Instagram, Facebook, Messages, or save to Photos
+- **Professional Design**: Placement badges, enhanced typography, celebration-focused layout
 
 ### User Experience ✅
 - **Gradient-Based Design**: Modern, polished UI with beautiful gradients throughout
@@ -33,6 +39,14 @@ ScoreVault is a local-first mobile app designed for gymnastics parents who want 
 - **Theme Support**: Light mode (dark mode infrastructure exists)
 - **Empty States**: Helpful guidance when getting started
 - **Level Filtering**: View scores for current level or all levels
+
+### Testing & Quality ✅
+- **Comprehensive Test Suite**: 90+ automated tests
+- **Unit Tests**: Theme utilities, team scoring, season calculations
+- **Integration Tests**: Database operations (CRUD for gymnasts, meets, scores)
+- **Workflow Tests**: Complete user flows from adding gymnasts to calculating team scores
+- **Mock Database**: In-memory SQLite simulation for fast, isolated testing
+- **Coverage Reporting**: Track code coverage with `npm run test:coverage`
 
 ## Tech Stack
 
@@ -54,6 +68,11 @@ ScoreVault is a local-first mobile app designed for gymnastics parents who want 
 - react-native-view-shot - Score card image generation
 - expo-sharing - Social media sharing
 - expo-media-library - Save to photos
+
+### Testing
+- Jest (v30.2.0) - Test framework
+- React Native Testing Library (v13.3.3) - Component testing
+- Custom mock database for SQLite testing
 
 ## Getting Started
 
@@ -86,6 +105,20 @@ npx expo start
    - Press `a` for Android Emulator
    - Scan QR code with Expo Go app on physical device
 
+### Running Tests
+
+Run the test suite:
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run with coverage report
+npm run test:coverage
+```
+
 ### Building for Production
 
 Build APK for Android:
@@ -99,14 +132,25 @@ npx eas build --profile preview --platform android
 ScoreVault/
 ├── app/                        # Expo Router screens
 │   ├── (auth)/                # Authentication screens
-│   ├── (tabs)/                # Main tab navigation
+│   ├── (tabs)/                # Main tab navigation (Gymnasts, Meets, Teams, Settings)
 │   ├── gymnast/[id].tsx       # Gymnast profile
 │   ├── meet/[id].tsx          # Meet details
+│   ├── level-meets/[id].tsx   # Team scores by level
+│   ├── team-score/[id].tsx    # Team score detail view
 │   ├── score-card-creator.tsx # Social media card creator
 │   └── ...                    # Other screens
 ├── components/                 # Reusable components
 │   ├── ScoreCard.tsx          # Social media score card
 │   └── FloatingActionButton.tsx
+├── __tests__/                  # Test files
+│   ├── __mocks__/             # Mock implementations
+│   │   └── database.mock.ts   # In-memory SQLite mock
+│   ├── theme.test.ts          # Theme utilities tests
+│   ├── teamScores.test.ts     # Team scoring tests
+│   ├── seasonUtils.test.ts    # Season calculation tests
+│   ├── database.gymnasts.test.ts     # Gymnast CRUD tests
+│   ├── database.meets-scores.test.ts # Meet & score tests
+│   └── integration.workflows.test.ts # End-to-end workflow tests
 ├── config/                     # Configuration
 │   └── firebase.ts            # Firebase config
 ├── contexts/                   # React contexts
@@ -115,10 +159,13 @@ ScoreVault/
 ├── types/                      # TypeScript definitions
 ├── utils/                      # Utilities and database
 │   ├── database.ts            # SQLite operations
-│   └── seasonUtils.ts         # Season calculations
-└── constants/                  # App constants
-    ├── theme.ts               # Design tokens
-    └── gradients.ts           # Gradient presets
+│   ├── seasonUtils.ts         # Season calculations
+│   └── teamScores.ts          # Team scoring calculations
+├── constants/                  # App constants
+│   ├── theme.ts               # Design tokens
+│   └── gradients.ts           # Gradient & icon presets
+├── jest.config.js              # Jest configuration
+└── jest.setup.js               # Test environment setup
 ```
 
 ## Database Schema
@@ -169,6 +216,21 @@ ScoreVault/
 - **Multi-Device**: Access data on multiple devices
 - **Flexibility**: Users choose when to backup
 - **Cost Control**: Only backup when needed
+
+## Team Scoring
+
+The Teams tab automatically calculates team scores by:
+- **Grouping**: Scores are organized by level and discipline
+- **Top Scores**: Uses top 3 scores per event (default), or top 5 for Women's Levels 1-5
+- **Full Team Analytics**: Charts and averages only include meets where all events had minimum competitors
+- **Expandable Meets**: Tap any meet to see detailed breakdowns, counting scores highlighted
+- **Frozen Tables**: Gymnast names stay visible while scrolling through event scores
+
+Team scoring helps coaches:
+- Track team performance trends over time
+- Identify strong/weak events for the team
+- Compare meet-to-meet progress
+- View which athletes' scores are counting
 
 ## Season Calculation
 

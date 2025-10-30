@@ -205,7 +205,7 @@ export default function PrivacySecurityScreen() {
       ...CARD_SHADOW
     },
     cardTitle: {
-      ...theme.typography.bodyBold,
+      ...theme.typography.h6,
       color: theme.colors.textPrimary,
       marginBottom: theme.spacing.sm
     },

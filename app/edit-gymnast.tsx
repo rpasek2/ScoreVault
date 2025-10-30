@@ -84,19 +84,19 @@ export default function EditGymnastScreen() {
     if (!gymnastId || !gymnast) return;
 
     if (!name.trim()) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackStyle.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please enter a gymnast name');
       return;
     }
 
     if (name.trim().length < 2) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackStyle.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Name must be at least 2 characters');
       return;
     }
 
     if (!level) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackStyle.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please select a level');
       return;
     }
@@ -113,10 +113,10 @@ export default function EditGymnastScreen() {
         dateOfBirth: dateOfBirth ? { toMillis: () => dateOfBirth.getTime() } : undefined
       });
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackStyle.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (error: any) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackStyle.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', error.message);
       setLoading(false);
     }

@@ -22,6 +22,7 @@ export interface Gymnast {
   usagNumber?: string;
   level: string;
   discipline: 'Womens' | 'Mens';
+  isHidden?: boolean;
   createdAt: Timestamp;
 }
 
@@ -110,17 +111,20 @@ export interface ScoreFormData {
 }
 
 // Social Media Score Card Types
-export type GradientName = 'purple' | 'ocean' | 'sunset' | 'forest' | 'royal' | 'fire';
+export type GradientName = 'purple' | 'ocean' | 'sunset' | 'forest' | 'royal' | 'fire' | 'skyBlue' | 'rosePink' | 'midnight' | 'crimson';
 
 export type AspectRatio = 'square' | 'story'; // 1:1 or 9:16
 
 export type BackgroundType = 'gradient' | 'photo';
+
+export type DecorativeIcon = 'none' | 'stars' | 'trophy' | 'medal' | 'fire' | 'sparkles';
 
 export interface ScoreCardConfig {
   backgroundType: BackgroundType;
   gradientName: GradientName;
   photoUri?: string;
   aspectRatio: AspectRatio;
+  decorativeIcon: DecorativeIcon;
 }
 
 export interface ScoreCardData {

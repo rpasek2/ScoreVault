@@ -5,13 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  useWindowDimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
-import { CARD_SHADOW } from '@/constants/theme';
+import { CARD_SHADOW, getCardBorder } from '@/constants/theme';
 import { getGymnasts, getMeets, getScores } from '@/utils/database';
 import {
   calculateTeamScore,
@@ -29,12 +30,21 @@ interface GymnastWithScore {
 }
 
 export default function TeamScoreCardScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const level = params.level as string;
   const discipline = params.discipline as 'Womens' | 'Mens';
   const meetId = params.meetId as string;
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Calculate scale factor based on screen width
+  const getScaleFactor = () => {
+    if (screenWidth < 600) return 1.0; // Phone
+    if (screenWidth < 900) return 1.4; // Small tablet
+    return 1.8; // Large tablet
+  };
+  const scaleFactor = getScaleFactor();
 
   const [loading, setLoading] = useState(true);
   const [meet, setMeet] = useState<Meet | null>(null);
@@ -168,7 +178,8 @@ export default function TeamScoreCardScreen() {
       padding: theme.spacing.lg,
       borderRadius: 16,
       marginBottom: theme.spacing.md,
-      ...CARD_SHADOW
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
     },
     teamScoreLabel: {
       ...theme.typography.caption,
@@ -217,7 +228,8 @@ export default function TeamScoreCardScreen() {
     gridCard: {
       borderRadius: 16,
       overflow: 'hidden',
-      ...CARD_SHADOW
+      ...CARD_SHADOW,
+      ...getCardBorder(isDark)
     },
     gridScrollContainer: {
       padding: theme.spacing.sm
@@ -228,6 +240,20 @@ export default function TeamScoreCardScreen() {
       borderRadius: theme.borderRadius.md,
       overflow: 'hidden'
     },
+    gridTableLeft: {
+      borderTopLeftRadius: theme.borderRadius.md,
+      borderBottomLeftRadius: theme.borderRadius.md,
+      borderTopRightRadius: 0,
+      borderBottomRightRadius: 0,
+      borderRightWidth: 0
+    },
+    gridTableRight: {
+      borderTopLeftRadius: 0,
+      borderBottomLeftRadius: 0,
+      borderTopRightRadius: theme.borderRadius.md,
+      borderBottomRightRadius: theme.borderRadius.md,
+      borderLeftWidth: 0
+    },
     gridHeader: {
       flexDirection: 'row',
       backgroundColor: theme.colors.surfaceSecondary,
@@ -235,8 +261,8 @@ export default function TeamScoreCardScreen() {
       borderBottomColor: theme.colors.border
     },
     gridHeaderCell: {
-      paddingVertical: theme.spacing.xs,
-      paddingHorizontal: 4,
+      paddingVertical: theme.spacing.xs * scaleFactor,
+      paddingHorizontal: 4 * scaleFactor,
       justifyContent: 'center',
       alignItems: 'center',
       borderRightWidth: 1,
@@ -249,15 +275,15 @@ export default function TeamScoreCardScreen() {
       ...theme.typography.caption,
       color: theme.colors.textPrimary,
       fontWeight: '700',
-      fontSize: 12
+      fontSize: 12 * scaleFactor
     },
     nameColumn: {
-      width: 100,
+      width: 100 * scaleFactor,
       alignItems: 'flex-start',
-      paddingLeft: theme.spacing.sm
+      paddingLeft: theme.spacing.sm * scaleFactor
     },
     scoreColumn: {
-      width: 60
+      width: 60 * scaleFactor
     },
     gridRow: {
       flexDirection: 'row',
@@ -268,8 +294,8 @@ export default function TeamScoreCardScreen() {
       borderBottomWidth: 0
     },
     gridCell: {
-      paddingVertical: theme.spacing.xs,
-      paddingHorizontal: 4,
+      paddingVertical: theme.spacing.xs * scaleFactor,
+      paddingHorizontal: 4 * scaleFactor,
       justifyContent: 'center',
       alignItems: 'center',
       borderRightWidth: 1,
@@ -284,19 +310,19 @@ export default function TeamScoreCardScreen() {
     },
     nameCell: {
       alignItems: 'flex-start',
-      paddingLeft: theme.spacing.sm
+      paddingLeft: theme.spacing.sm * scaleFactor
     },
     gymnastName: {
       ...theme.typography.bodySmall,
       color: theme.colors.textPrimary,
       fontWeight: '600',
-      fontSize: 14
+      fontSize: 14 * scaleFactor
     },
     scoreText: {
       ...theme.typography.bodySmall,
       color: theme.colors.textPrimary,
       fontWeight: '500',
-      fontSize: 14
+      fontSize: 14 * scaleFactor
     },
     scoreTextCounting: {
       color: theme.colors.warning,
@@ -373,7 +399,7 @@ export default function TeamScoreCardScreen() {
     }
   });
 
-  if (loading) {
+  if (loading || !teamScoreResult) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -481,72 +507,89 @@ export default function TeamScoreCardScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gridCard}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.gridScrollContainer}>
-            <View style={styles.gridTable}>
-              {/* Header Row */}
-              <View style={styles.gridHeader}>
-                <View style={[styles.gridHeaderCell, styles.nameColumn]}>
-                  <Text style={styles.gridHeaderText}>Gymnast</Text>
-                </View>
-                {events.map((event, index) => (
-                  <View
-                    key={event}
-                    style={[
-                      styles.gridHeaderCell,
-                      styles.scoreColumn,
-                      index === events.length && styles.gridHeaderCellLast
-                    ]}>
-                    <Text style={styles.gridHeaderText}>{getEventDisplayName(event)}</Text>
+          <View style={styles.gridScrollContainer}>
+            <View style={{ flexDirection: 'row' }}>
+              {/* Fixed Names Column */}
+              <View style={[styles.gridTable, styles.gridTableLeft]}>
+                {/* Header */}
+                <View style={styles.gridHeader}>
+                  <View style={[styles.gridHeaderCell, styles.nameColumn]}>
+                    <Text style={styles.gridHeaderText}>Gymnast</Text>
                   </View>
-                ))}
-                <View style={[styles.gridHeaderCell, styles.scoreColumn, styles.gridHeaderCellLast]}>
-                  <Text style={styles.gridHeaderText}>AA</Text>
                 </View>
+                {/* Data Rows */}
+                {gymnastsWithScores.map((item, rowIndex) => (
+                  <TouchableOpacity
+                    key={item.gymnast.id}
+                    onPress={() => handleGymnastPress(item.gymnast.id)}
+                    activeOpacity={0.7}>
+                    <View style={[styles.gridRow, rowIndex === gymnastsWithScores.length - 1 && styles.gridRowLast]}>
+                      <View style={[styles.gridCell, styles.nameColumn, styles.nameCell]}>
+                        <Text style={styles.gymnastName} numberOfLines={1}>
+                          {item.gymnast.name}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-              {/* Data Rows */}
-              {gymnastsWithScores.map((item, rowIndex) => (
-                <TouchableOpacity
-                  key={item.gymnast.id}
-                  onPress={() => handleGymnastPress(item.gymnast.id)}
-                  activeOpacity={0.7}>
-                  <View style={[styles.gridRow, rowIndex === gymnastsWithScores.length - 1 && styles.gridRowLast]}>
-                    <View style={[styles.gridCell, styles.nameColumn, styles.nameCell]}>
-                      <Text style={styles.gymnastName} numberOfLines={1}>
-                        {item.gymnast.name}
-                      </Text>
-                    </View>
-                    {events.map((event, index) => {
-                      const score = item.score.scores[event];
-                      const isCounting = score
-                        ? isCountingScore(item.gymnast.id, event, teamScoreResult.countingScores)
-                        : false;
-
-                      return (
-                        <View
-                          key={event}
-                          style={[
-                            styles.gridCell,
-                            styles.scoreColumn,
-                            isCounting && styles.gridCellCounting,
-                            index === events.length && styles.gridCellLast
-                          ]}>
-                          <Text style={[styles.scoreText, isCounting && styles.scoreTextCounting]}>
-                            {score ? score.toFixed(3) : '-'}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                    <View style={[styles.gridCell, styles.scoreColumn, styles.gridCellLast]}>
-                      <Text style={styles.scoreText}>
-                        {item.score.scores.allAround.toFixed(3)}
-                      </Text>
+              {/* Scrollable Scores */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                <View style={[styles.gridTable, styles.gridTableRight]}>
+                  {/* Header Row */}
+                  <View style={styles.gridHeader}>
+                    {events.map((event, index) => (
+                      <View
+                        key={event}
+                        style={[
+                          styles.gridHeaderCell,
+                          styles.scoreColumn,
+                          index === events.length && styles.gridHeaderCellLast
+                        ]}>
+                        <Text style={styles.gridHeaderText}>{getEventDisplayName(event)}</Text>
+                      </View>
+                    ))}
+                    <View style={[styles.gridHeaderCell, styles.scoreColumn, styles.gridHeaderCellLast]}>
+                      <Text style={styles.gridHeaderText}>AA</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
+
+                  {/* Data Rows */}
+                  {gymnastsWithScores.map((item, rowIndex) => (
+                    <View key={item.gymnast.id} style={[styles.gridRow, rowIndex === gymnastsWithScores.length - 1 && styles.gridRowLast]}>
+                      {events.map((event, index) => {
+                        const score = item.score.scores[event];
+                        const isCounting = score
+                          ? isCountingScore(item.gymnast.id, event, teamScoreResult.countingScores)
+                          : false;
+
+                        return (
+                          <View
+                            key={event}
+                            style={[
+                              styles.gridCell,
+                              styles.scoreColumn,
+                              isCounting && styles.gridCellCounting,
+                              index === events.length && styles.gridCellLast
+                            ]}>
+                            <Text style={[styles.scoreText, isCounting && styles.scoreTextCounting]}>
+                              {score ? score.toFixed(3) : '-'}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                      <View style={[styles.gridCell, styles.scoreColumn, styles.gridCellLast]}>
+                        <Text style={styles.scoreText}>
+                          {item.score.scores.allAround.toFixed(3)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
-          </ScrollView>
+          </View>
         </LinearGradient>
       </ScrollView>
     </View>

@@ -54,6 +54,7 @@ export default function AddScoreScreen() {
 
   const [loading, setLoading] = useState(false);
   const [loadingGymnasts, setLoadingGymnasts] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -117,41 +118,50 @@ export default function AddScoreScreen() {
       return;
     }
 
-    // Validate based on discipline
+    // Validate based on discipline - allow partial scores
     if (selectedDiscipline === 'Womens') {
-      const vaultNum = parseFloat(vault);
-      const barsNum = parseFloat(bars);
-      const beamNum = parseFloat(beam);
-      const floorNum = parseFloat(floor);
+      const vaultNum = vault ? parseFloat(vault) : null;
+      const barsNum = bars ? parseFloat(bars) : null;
+      const beamNum = beam ? parseFloat(beam) : null;
+      const floorNum = floor ? parseFloat(floor) : null;
 
-      if (isNaN(vaultNum) || isNaN(barsNum) || isNaN(beamNum) || isNaN(floorNum)) {
-        Alert.alert('Error', 'Please enter valid scores for all events');
+      // Check if at least one score is entered
+      if (vaultNum === null && barsNum === null && beamNum === null && floorNum === null) {
+        Alert.alert('Error', 'Please enter at least one score');
         return;
       }
 
-      if (vaultNum < 0 || vaultNum > 10 || barsNum < 0 || barsNum > 10 ||
-          beamNum < 0 || beamNum > 10 || floorNum < 0 || floorNum > 10) {
+      // Validate only the scores that are filled in
+      if ((vaultNum !== null && (vaultNum < 0 || vaultNum > 10)) ||
+          (barsNum !== null && (barsNum < 0 || barsNum > 10)) ||
+          (beamNum !== null && (beamNum < 0 || beamNum > 10)) ||
+          (floorNum !== null && (floorNum < 0 || floorNum > 10))) {
         Alert.alert('Error', 'Scores must be between 0.000 and 10.000');
         return;
       }
     } else {
-      // Mens validation
-      const floorNum = parseFloat(floor);
-      const pommelHorseNum = parseFloat(pommelHorse);
-      const ringsNum = parseFloat(rings);
-      const vaultNum = parseFloat(vault);
-      const parallelBarsNum = parseFloat(parallelBars);
-      const highBarNum = parseFloat(highBar);
+      // Mens validation - allow partial scores
+      const floorNum = floor ? parseFloat(floor) : null;
+      const pommelHorseNum = pommelHorse ? parseFloat(pommelHorse) : null;
+      const ringsNum = rings ? parseFloat(rings) : null;
+      const vaultNum = vault ? parseFloat(vault) : null;
+      const parallelBarsNum = parallelBars ? parseFloat(parallelBars) : null;
+      const highBarNum = highBar ? parseFloat(highBar) : null;
 
-      if (isNaN(floorNum) || isNaN(pommelHorseNum) || isNaN(ringsNum) ||
-          isNaN(vaultNum) || isNaN(parallelBarsNum) || isNaN(highBarNum)) {
-        Alert.alert('Error', 'Please enter valid scores for all events');
+      // Check if at least one score is entered
+      if (floorNum === null && pommelHorseNum === null && ringsNum === null &&
+          vaultNum === null && parallelBarsNum === null && highBarNum === null) {
+        Alert.alert('Error', 'Please enter at least one score');
         return;
       }
 
-      if (floorNum < 0 || floorNum > 15 || pommelHorseNum < 0 || pommelHorseNum > 15 ||
-          ringsNum < 0 || ringsNum > 15 || vaultNum < 0 || vaultNum > 15 ||
-          parallelBarsNum < 0 || parallelBarsNum > 15 || highBarNum < 0 || highBarNum > 15) {
+      // Validate only the scores that are filled in
+      if ((floorNum !== null && (floorNum < 0 || floorNum > 15)) ||
+          (pommelHorseNum !== null && (pommelHorseNum < 0 || pommelHorseNum > 15)) ||
+          (ringsNum !== null && (ringsNum < 0 || ringsNum > 15)) ||
+          (vaultNum !== null && (vaultNum < 0 || vaultNum > 15)) ||
+          (parallelBarsNum !== null && (parallelBarsNum < 0 || parallelBarsNum > 15)) ||
+          (highBarNum !== null && (highBarNum < 0 || highBarNum > 15))) {
         Alert.alert('Error', 'Scores must be between 0.000 and 15.000');
         return;
       }
@@ -162,26 +172,26 @@ export default function AddScoreScreen() {
       // Find the selected gymnast to get their current level
       const selectedGymnast = gymnasts.find(g => g.id === selectedGymnastId);
 
-      // Build scores object based on discipline
+      // Build scores object based on discipline - only include filled scores
       const scores: any = { allAround: parseFloat(allAround) };
       const placements: any = { allAround: aaPlace ? parseInt(aaPlace) : null };
 
       if (selectedDiscipline === 'Womens') {
-        scores.vault = parseFloat(vault);
-        scores.bars = parseFloat(bars);
-        scores.beam = parseFloat(beam);
-        scores.floor = parseFloat(floor);
+        scores.vault = vault ? parseFloat(vault) : undefined;
+        scores.bars = bars ? parseFloat(bars) : undefined;
+        scores.beam = beam ? parseFloat(beam) : undefined;
+        scores.floor = floor ? parseFloat(floor) : undefined;
         placements.vault = vaultPlace ? parseInt(vaultPlace) : null;
         placements.bars = barsPlace ? parseInt(barsPlace) : null;
         placements.beam = beamPlace ? parseInt(beamPlace) : null;
         placements.floor = floorPlace ? parseInt(floorPlace) : null;
       } else {
-        scores.floor = parseFloat(floor);
-        scores.pommelHorse = parseFloat(pommelHorse);
-        scores.rings = parseFloat(rings);
-        scores.vault = parseFloat(vault);
-        scores.parallelBars = parseFloat(parallelBars);
-        scores.highBar = parseFloat(highBar);
+        scores.floor = floor ? parseFloat(floor) : undefined;
+        scores.pommelHorse = pommelHorse ? parseFloat(pommelHorse) : undefined;
+        scores.rings = rings ? parseFloat(rings) : undefined;
+        scores.vault = vault ? parseFloat(vault) : undefined;
+        scores.parallelBars = parallelBars ? parseFloat(parallelBars) : undefined;
+        scores.highBar = highBar ? parseFloat(highBar) : undefined;
         placements.floor = floorPlace ? parseInt(floorPlace) : null;
         placements.pommelHorse = pommelHorsePlace ? parseInt(pommelHorsePlace) : null;
         placements.rings = ringsPlace ? parseInt(ringsPlace) : null;
@@ -292,31 +302,65 @@ export default function AddScoreScreen() {
       textAlign: 'center',
       padding: 20
     },
-    pickerContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8
-    },
-    gymnastOption: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 20,
-      borderWidth: 2,
+    dropdownButton: {
+      backgroundColor: theme.colors.surface,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
       borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center'
     },
-    gymnastOptionSelected: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary
-    },
-    gymnastOptionText: {
-      fontSize: 14,
+    dropdownButtonText: {
+      fontSize: 16,
       color: theme.colors.textPrimary,
-      fontWeight: '500'
+      flex: 1
     },
-    gymnastOptionTextSelected: {
-      color: theme.colors.surface,
-      fontWeight: '600'
+    dropdownButtonPlaceholder: {
+      color: theme.colors.textTertiary
+    },
+    dropdownIcon: {
+      fontSize: 16,
+      color: theme.colors.textSecondary,
+      marginLeft: 8
+    },
+    dropdownList: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginTop: 4,
+      maxHeight: 200
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.borderLight
+    },
+    dropdownItemLast: {
+      borderBottomWidth: 0
+    },
+    dropdownItemSelected: {
+      backgroundColor: theme.colors.primary + '15'
+    },
+    dropdownItemName: {
+      fontSize: 16,
+      color: theme.colors.textPrimary,
+      fontWeight: '500',
+      flex: 1
+    },
+    dropdownItemLevel: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      fontWeight: '500',
+      backgroundColor: theme.colors.surfaceSecondary,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6
     },
     allAroundBox: {
       flexDirection: 'row',
@@ -386,24 +430,44 @@ export default function AddScoreScreen() {
                 No gymnasts found. Please add a gymnast first.
               </Text>
             ) : (
-              <View style={styles.pickerContainer}>
-                {gymnasts.map((gymnast) => (
-                  <TouchableOpacity
-                    key={gymnast.id}
+              <View>
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setDropdownOpen(!dropdownOpen)}
+                  activeOpacity={0.7}>
+                  <Text
                     style={[
-                      styles.gymnastOption,
-                      selectedGymnastId === gymnast.id && styles.gymnastOptionSelected
-                    ]}
-                    onPress={() => setSelectedGymnastId(gymnast.id)}>
-                    <Text
-                      style={[
-                        styles.gymnastOptionText,
-                        selectedGymnastId === gymnast.id && styles.gymnastOptionTextSelected
-                      ]}>
-                      {gymnast.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      styles.dropdownButtonText,
+                      !selectedGymnastId && styles.dropdownButtonPlaceholder
+                    ]}>
+                    {selectedGymnastId
+                      ? gymnasts.find(g => g.id === selectedGymnastId)?.name
+                      : 'Select a gymnast'}
+                  </Text>
+                  <Text style={styles.dropdownIcon}>{dropdownOpen ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+
+                {dropdownOpen && (
+                  <ScrollView style={styles.dropdownList} nestedScrollEnabled>
+                    {gymnasts.map((gymnast, index) => (
+                      <TouchableOpacity
+                        key={gymnast.id}
+                        style={[
+                          styles.dropdownItem,
+                          index === gymnasts.length - 1 && styles.dropdownItemLast,
+                          selectedGymnastId === gymnast.id && styles.dropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedGymnastId(gymnast.id);
+                          setDropdownOpen(false);
+                        }}
+                        activeOpacity={0.7}>
+                        <Text style={styles.dropdownItemName}>{gymnast.name}</Text>
+                        <Text style={styles.dropdownItemLevel}>{gymnast.level}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
               </View>
             )}
           </View>
@@ -420,12 +484,11 @@ export default function AddScoreScreen() {
               {/* Womens Events: Vault, Bars, Beam, Floor */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Vault <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Vault</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={vault}
                     onChangeText={setVault}
                     keyboardType="decimal-pad"
@@ -434,12 +497,11 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Bars <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Bars</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={bars}
                     onChangeText={setBars}
                     keyboardType="decimal-pad"
@@ -450,12 +512,11 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Beam <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Beam</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={beam}
                     onChangeText={setBeam}
                     keyboardType="decimal-pad"
@@ -464,12 +525,11 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Floor <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Floor</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={floor}
                     onChangeText={setFloor}
                     keyboardType="decimal-pad"
@@ -483,12 +543,11 @@ export default function AddScoreScreen() {
               {/* Mens Events: Floor, Pommel Horse, Rings, Vault, Parallel Bars, High Bar */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Floor <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Floor</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={floor}
                     onChangeText={setFloor}
                     keyboardType="decimal-pad"
@@ -497,12 +556,11 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Pommel Horse <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Pommel Horse</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={pommelHorse}
                     onChangeText={setPommelHorse}
                     keyboardType="decimal-pad"
@@ -513,12 +571,11 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Rings <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Rings</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={rings}
                     onChangeText={setRings}
                     keyboardType="decimal-pad"
@@ -527,12 +584,11 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Vault <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Vault</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={vault}
                     onChangeText={setVault}
                     keyboardType="decimal-pad"
@@ -543,12 +599,11 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    Parallel Bars <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>Parallel Bars</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={parallelBars}
                     onChangeText={setParallelBars}
                     keyboardType="decimal-pad"
@@ -557,12 +612,11 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>
-                    High Bar <Text style={styles.required}>*</Text>
-                  </Text>
+                  <Text style={styles.label}>High Bar</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={highBar}
                     onChangeText={setHighBar}
                     keyboardType="decimal-pad"
@@ -598,6 +652,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={vaultPlace}
                     onChangeText={setVaultPlace}
                     keyboardType="number-pad"
@@ -610,6 +665,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={barsPlace}
                     onChangeText={setBarsPlace}
                     keyboardType="number-pad"
@@ -624,6 +680,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={beamPlace}
                     onChangeText={setBeamPlace}
                     keyboardType="number-pad"
@@ -636,6 +693,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={floorPlace}
                     onChangeText={setFloorPlace}
                     keyboardType="number-pad"
@@ -653,6 +711,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={floorPlace}
                     onChangeText={setFloorPlace}
                     keyboardType="number-pad"
@@ -665,6 +724,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={pommelHorsePlace}
                     onChangeText={setPommelHorsePlace}
                     keyboardType="number-pad"
@@ -679,6 +739,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={ringsPlace}
                     onChangeText={setRingsPlace}
                     keyboardType="number-pad"
@@ -691,6 +752,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={vaultPlace}
                     onChangeText={setVaultPlace}
                     keyboardType="number-pad"
@@ -705,6 +767,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={parallelBarsPlace}
                     onChangeText={setParallelBarsPlace}
                     keyboardType="number-pad"
@@ -717,6 +780,7 @@ export default function AddScoreScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder=""
+                    placeholderTextColor={theme.colors.textTertiary}
                     value={highBarPlace}
                     onChangeText={setHighBarPlace}
                     keyboardType="number-pad"
@@ -732,6 +796,7 @@ export default function AddScoreScreen() {
             <TextInput
               style={styles.input}
               placeholder=""
+              placeholderTextColor={theme.colors.textTertiary}
               value={aaPlace}
               onChangeText={setAaPlace}
               keyboardType="number-pad"

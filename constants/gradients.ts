@@ -1,4 +1,4 @@
-import { GradientName } from '@/types';
+import { GradientName, DecorativeIcon } from '@/types';
 
 export interface GradientPreset {
   name: GradientName;
@@ -36,8 +36,82 @@ export const SCORE_CARD_GRADIENTS: Record<GradientName, GradientPreset> = {
     name: 'fire',
     colors: ['#F857A6', '#FF5858'],
     label: 'Fire'
+  },
+  skyBlue: {
+    name: 'skyBlue',
+    colors: ['#4A90E2', '#50C9FF'],
+    label: 'Sky Blue'
+  },
+  rosePink: {
+    name: 'rosePink',
+    colors: ['#FF6FA5', '#FF99C8'],
+    label: 'Rose Pink'
+  },
+  midnight: {
+    name: 'midnight',
+    colors: ['#2C3E50', '#4CA1AF'],
+    label: 'Midnight'
+  },
+  crimson: {
+    name: 'crimson',
+    colors: ['#DC143C', '#FF6B6B'],
+    label: 'Crimson'
   }
 };
 
 // Array for easy iteration
 export const GRADIENT_OPTIONS: GradientPreset[] = Object.values(SCORE_CARD_GRADIENTS);
+
+// Decorative Icon Options
+export interface DecorativeIconOption {
+  type: DecorativeIcon;
+  emoji: string;
+  label: string;
+  headerIcon: string;
+  allAroundIcon: string;
+}
+
+export const DECORATIVE_ICON_OPTIONS: DecorativeIconOption[] = [
+  {
+    type: 'none',
+    emoji: '✕',
+    label: 'None',
+    headerIcon: '',
+    allAroundIcon: ''
+  },
+  {
+    type: 'stars',
+    emoji: '✨',
+    label: 'Stars',
+    headerIcon: '✨',
+    allAroundIcon: '⭐'
+  },
+  {
+    type: 'trophy',
+    emoji: '🏆',
+    label: 'Trophy',
+    headerIcon: '🏆',
+    allAroundIcon: '🏆'
+  },
+  {
+    type: 'medal',
+    emoji: '🏅',
+    label: 'Medal',
+    headerIcon: '🏅',
+    allAroundIcon: '🥇'
+  },
+  {
+    type: 'fire',
+    emoji: '🔥',
+    label: 'Fire',
+    headerIcon: '🔥',
+    allAroundIcon: '🔥'
+  },
+  {
+    type: 'sparkles',
+    emoji: '✨',
+    label: 'Sparkles',
+    headerIcon: '✨',
+    allAroundIcon: '✨'
+  }
+];

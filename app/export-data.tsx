@@ -35,7 +35,7 @@ export default function ExportDataScreen() {
     return [csvHeaders, ...csvRows].join('\n');
   };
 
-  const handleExport = async (type: 'json' | 'csv-gymnasts' | 'csv-meets' | 'csv-scores') => {
+  const handleExport = async (type: 'json' | 'csv-gymnasts' | 'csv-meets' | 'csv-scores' | 'csv-team-scores') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setExporting(true);
 
@@ -115,6 +115,92 @@ export default function ExportDataScreen() {
             ['ID', 'Gymnast ID', 'Meet ID', 'Level', 'Vault', 'Bars', 'Beam', 'Floor', 'Pommel Horse', 'Rings', 'Parallel Bars', 'High Bar', 'All-Around', 'Created At'],
             scoreRows
           );
+          mimeType = 'text/csv';
+          uti = 'public.comma-separated-values-text';
+          break;
+
+        case 'csv-team-scores':
+          filename = `team-scores-${timestamp}.csv`;
+          const teamRows: any[][] = [];
+
+          // Group scores by level and discipline
+          const levelDisciplineMap = new Map<string, any[]>();
+
+          allData.scores.forEach(score => {
+            if (!score.level) return;
+            const gymnast = allData.gymnasts.find(g => g.id === score.gymnastId);
+            if (!gymnast) return;
+
+            const key = `${score.level}-${gymnast.discipline}`;
+            if (!levelDisciplineMap.has(key)) {
+              levelDisciplineMap.set(key, []);
+            }
+            levelDisciplineMap.get(key)!.push({ score, gymnast });
+          });
+
+          // Build rows for each score
+          for (const [key, items] of levelDisciplineMap.entries()) {
+            for (const { score, gymnast } of items) {
+              const meet = allData.meets.find(m => m.id === score.meetId);
+              if (!meet) continue;
+
+              const meetDate = formatDate(new Date(meet.date.toMillis!()));
+
+              if (gymnast.discipline === 'Womens') {
+                teamRows.push([
+                  score.level,
+                  "Women's",
+                  meet.name,
+                  meetDate,
+                  meet.season,
+                  gymnast.name,
+                  score.scores.vault || '',
+                  score.scores.bars || '',
+                  score.scores.beam || '',
+                  score.scores.floor || '',
+                  score.scores.allAround
+                ]);
+              } else {
+                teamRows.push([
+                  score.level,
+                  "Men's",
+                  meet.name,
+                  meetDate,
+                  meet.season,
+                  gymnast.name,
+                  score.scores.floor || '',
+                  score.scores.pommelHorse || '',
+                  score.scores.rings || '',
+                  score.scores.vault || '',
+                  score.scores.parallelBars || '',
+                  score.scores.highBar || '',
+                  score.scores.allAround
+                ]);
+              }
+            }
+          }
+
+          // Check if we have mixed disciplines
+          const hasMens = allData.scores.some(s => {
+            const g = allData.gymnasts.find(gymnast => gymnast.id === s.gymnastId);
+            return g?.discipline === 'Mens';
+          });
+          const hasWomens = allData.scores.some(s => {
+            const g = allData.gymnasts.find(gymnast => gymnast.id === s.gymnastId);
+            return g?.discipline === 'Womens';
+          });
+
+          let teamHeaders: string[];
+          if (hasMens && !hasWomens) {
+            teamHeaders = ['Level', 'Discipline', 'Meet', 'Date', 'Season', 'Gymnast', 'Floor', 'Pommel Horse', 'Rings', 'Vault', 'Parallel Bars', 'High Bar', 'All-Around'];
+          } else if (hasWomens && !hasMens) {
+            teamHeaders = ['Level', 'Discipline', 'Meet', 'Date', 'Season', 'Gymnast', 'Vault', 'Bars', 'Beam', 'Floor', 'All-Around'];
+          } else {
+            // Mixed - use a generic header
+            teamHeaders = ['Level', 'Discipline', 'Meet', 'Date', 'Season', 'Gymnast', 'Event 1', 'Event 2', 'Event 3', 'Event 4', 'Event 5', 'Event 6', 'All-Around'];
+          }
+
+          data = convertToCSV(teamHeaders, teamRows);
           mimeType = 'text/csv';
           uti = 'public.comma-separated-values-text';
           break;
@@ -293,6 +379,14 @@ export default function ExportDataScreen() {
             disabled={exporting}
             activeOpacity={0.7}>
             <Text style={styles.exportButtonTextSecondary}>Export Scores (CSV)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exportButton, styles.exportButtonSecondary, exporting && styles.exportButtonDisabled]}
+            onPress={() => handleExport('csv-team-scores')}
+            disabled={exporting}
+            activeOpacity={0.7}>
+            <Text style={styles.exportButtonTextSecondary}>Export Team Scores (CSV)</Text>
           </TouchableOpacity>
         </View>
 

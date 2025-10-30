@@ -17,9 +17,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { ScoreCard } from '@/components/ScoreCard';
-import { AppTheme } from '@/constants/theme';
-import { GRADIENT_OPTIONS } from '@/constants/gradients';
-import { ScoreCardData, ScoreCardConfig, GradientName, AspectRatio } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
+import { GRADIENT_OPTIONS, DECORATIVE_ICON_OPTIONS } from '@/constants/gradients';
+import { ScoreCardData, ScoreCardConfig, GradientName, AspectRatio, DecorativeIcon } from '@/types';
 import { getScoreById } from '@/utils/database';
 import { getGymnastById } from '@/utils/database';
 import { getMeetById } from '@/utils/database';
@@ -27,6 +27,7 @@ import { getMeetById } from '@/utils/database';
 export default function ScoreCardCreatorScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { theme } = useTheme();
   const cardRef = useRef<View>(null);
 
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,8 @@ export default function ScoreCardCreatorScreen() {
     backgroundType: 'gradient',
     gradientName: 'purple',
     photoUri: undefined,
-    aspectRatio: 'square'
+    aspectRatio: 'story',
+    decorativeIcon: 'stars'
   });
 
   // Load score data
@@ -241,10 +243,265 @@ export default function ScoreCardCreatorScreen() {
     }));
   };
 
+  const handleSelectIcon = (icon: DecorativeIcon) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setConfig(prev => ({
+      ...prev,
+      decorativeIcon: icon
+    }));
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background
+    },
+    hiddenCard: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      opacity: 0,
+      zIndex: -1,
+      pointerEvents: 'none'
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background
+    },
+    loadingText: {
+      ...theme.typography.body,
+      color: theme.colors.textSecondary,
+      marginTop: theme.spacing.base
+    },
+    scrollContent: {
+      padding: theme.spacing.base
+    },
+    previewSection: {
+      marginBottom: theme.spacing.xl
+    },
+    sectionTitle: {
+      ...theme.typography.h4,
+      color: theme.colors.textPrimary,
+      fontWeight: '600',
+      marginBottom: theme.spacing.base
+    },
+    previewContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.lg,
+      padding: theme.spacing.base,
+      alignItems: 'center',
+      ...theme.shadows.medium
+    },
+    cardWrapper: {
+      transform: [{ scale: 0.3 }],
+      marginVertical: -300
+    },
+    customizationSection: {
+      marginBottom: theme.spacing.xl
+    },
+    controlGroup: {
+      marginBottom: theme.spacing.lg
+    },
+    controlLabel: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.sm
+    },
+    aspectRatioToggle: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm
+    },
+    aspectRatioButton: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.md,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      padding: theme.spacing.base,
+      alignItems: 'center'
+    },
+    aspectRatioButtonActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary + '15'
+    },
+    aspectRatioButtonText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.textSecondary
+    },
+    aspectRatioButtonTextActive: {
+      color: theme.colors.primary
+    },
+    aspectRatioSubtext: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      marginTop: 4
+    },
+    gradientScroll: {
+      marginHorizontal: -theme.spacing.base
+    },
+    gradientOption: {
+      marginLeft: theme.spacing.base,
+      alignItems: 'center',
+      position: 'relative'
+    },
+    gradientOptionActive: {
+      opacity: 1
+    },
+    gradientPreview: {
+      width: 80,
+      height: 80,
+      borderRadius: theme.borderRadius.md,
+      overflow: 'hidden',
+      flexDirection: 'row',
+      ...theme.shadows.small
+    },
+    gradientPreviewColor: {
+      flex: 1
+    },
+    gradientLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      marginTop: theme.spacing.xs
+    },
+    iconScroll: {
+      marginHorizontal: -theme.spacing.base
+    },
+    iconOption: {
+      marginLeft: theme.spacing.base,
+      alignItems: 'center',
+      position: 'relative'
+    },
+    iconOptionActive: {
+      opacity: 1
+    },
+    iconPreview: {
+      width: 80,
+      height: 80,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surfaceSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...theme.shadows.small
+    },
+    iconEmoji: {
+      fontSize: 40
+    },
+    iconLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      marginTop: theme.spacing.xs
+    },
+    selectedIndicator: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      backgroundColor: theme.colors.primary,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center'
+    },
+    selectedIndicatorText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700'
+    },
+    actionsSection: {
+      gap: theme.spacing.sm
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.spacing.base,
+      borderRadius: theme.borderRadius.lg,
+      ...theme.shadows.medium
+    },
+    actionButtonDisabled: {
+      opacity: 0.5
+    },
+    shareButton: {
+      backgroundColor: theme.colors.primary
+    },
+    saveButton: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 2,
+      borderColor: theme.colors.primary
+    },
+    actionButtonIcon: {
+      fontSize: 20,
+      marginRight: theme.spacing.sm
+    },
+    actionButtonText: {
+      ...theme.typography.button,
+      color: '#FFFFFF',
+      fontWeight: '600'
+    },
+    saveButtonText: {
+      color: theme.colors.primary
+    },
+    backgroundTypeToggle: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm
+    },
+    backgroundTypeButton: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.md,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      padding: theme.spacing.base,
+      alignItems: 'center'
+    },
+    backgroundTypeButtonActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary + '15'
+    },
+    backgroundTypeButtonText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.textSecondary
+    },
+    backgroundTypeButtonTextActive: {
+      color: theme.colors.primary
+    },
+    photoInfoContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.base,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border
+    },
+    photoInfoText: {
+      ...theme.typography.body,
+      color: theme.colors.textPrimary
+    },
+    changePhotoButton: {
+      backgroundColor: theme.colors.primary + '20',
+      paddingHorizontal: theme.spacing.base,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.borderRadius.sm
+    },
+    changePhotoButtonText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      fontSize: 14
+    }
+  });
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={AppTheme.colors.primary} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading score data...</Text>
       </View>
     );
@@ -392,6 +649,33 @@ export default function ScoreCardCreatorScreen() {
             </View>
           )}
 
+          {/* Decorative Icons Selector */}
+          <View style={styles.controlGroup}>
+            <Text style={styles.controlLabel}>Decorative Icons</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconScroll}>
+              {DECORATIVE_ICON_OPTIONS.map((iconOption) => (
+                <TouchableOpacity
+                  key={iconOption.type}
+                  onPress={() => handleSelectIcon(iconOption.type)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.iconOption,
+                    config.decorativeIcon === iconOption.type && styles.iconOptionActive
+                  ]}>
+                  <View style={styles.iconPreview}>
+                    <Text style={styles.iconEmoji}>{iconOption.emoji}</Text>
+                  </View>
+                  <Text style={styles.iconLabel}>{iconOption.label}</Text>
+                  {config.decorativeIcon === iconOption.type && (
+                    <View style={styles.selectedIndicator}>
+                      <Text style={styles.selectedIndicatorText}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           {/* Photo Background Info - Show when photo is selected */}
           {config.backgroundType === 'photo' && config.photoUri && (
             <View style={styles.controlGroup}>
@@ -432,7 +716,7 @@ export default function ScoreCardCreatorScreen() {
             disabled={generating}
             activeOpacity={0.7}>
             {generating ? (
-              <ActivityIndicator color={AppTheme.colors.primary} />
+              <ActivityIndicator color={theme.colors.primary} />
             ) : (
               <>
                 <Text style={styles.actionButtonIcon}>💾</Text>
@@ -445,222 +729,3 @@ export default function ScoreCardCreatorScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: AppTheme.colors.background
-  },
-  hiddenCard: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    opacity: 0, // Completely invisible
-    zIndex: -1, // Behind everything
-    pointerEvents: 'none' // Don't intercept touches
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: AppTheme.colors.background
-  },
-  loadingText: {
-    ...AppTheme.typography.body,
-    color: AppTheme.colors.textSecondary,
-    marginTop: AppTheme.spacing.base
-  },
-  scrollContent: {
-    padding: AppTheme.spacing.base
-  },
-  previewSection: {
-    marginBottom: AppTheme.spacing.xl
-  },
-  sectionTitle: {
-    ...AppTheme.typography.h4,
-    color: AppTheme.colors.textPrimary,
-    fontWeight: '600',
-    marginBottom: AppTheme.spacing.base
-  },
-  previewContainer: {
-    backgroundColor: AppTheme.colors.surface,
-    borderRadius: AppTheme.borderRadius.lg,
-    padding: AppTheme.spacing.base,
-    alignItems: 'center',
-    ...AppTheme.shadows.medium
-  },
-  cardWrapper: {
-    transform: [{ scale: 0.3 }],
-    marginVertical: -300
-  },
-  customizationSection: {
-    marginBottom: AppTheme.spacing.xl
-  },
-  controlGroup: {
-    marginBottom: AppTheme.spacing.lg
-  },
-  controlLabel: {
-    ...AppTheme.typography.body,
-    fontWeight: '600',
-    color: AppTheme.colors.textPrimary,
-    marginBottom: AppTheme.spacing.sm
-  },
-  aspectRatioToggle: {
-    flexDirection: 'row',
-    gap: AppTheme.spacing.sm
-  },
-  aspectRatioButton: {
-    flex: 1,
-    backgroundColor: AppTheme.colors.surface,
-    borderRadius: AppTheme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: AppTheme.colors.border,
-    padding: AppTheme.spacing.base,
-    alignItems: 'center'
-  },
-  aspectRatioButtonActive: {
-    borderColor: AppTheme.colors.primary,
-    backgroundColor: AppTheme.colors.primary + '15'
-  },
-  aspectRatioButtonText: {
-    ...AppTheme.typography.body,
-    fontWeight: '600',
-    color: AppTheme.colors.textSecondary
-  },
-  aspectRatioButtonTextActive: {
-    color: AppTheme.colors.primary
-  },
-  aspectRatioSubtext: {
-    ...AppTheme.typography.caption,
-    color: AppTheme.colors.textSecondary,
-    marginTop: 4
-  },
-  gradientScroll: {
-    marginHorizontal: -AppTheme.spacing.base
-  },
-  gradientOption: {
-    marginLeft: AppTheme.spacing.base,
-    alignItems: 'center',
-    position: 'relative'
-  },
-  gradientOptionActive: {
-    opacity: 1
-  },
-  gradientPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: AppTheme.borderRadius.md,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    ...AppTheme.shadows.small
-  },
-  gradientPreviewColor: {
-    flex: 1
-  },
-  gradientLabel: {
-    ...AppTheme.typography.caption,
-    color: AppTheme.colors.textSecondary,
-    marginTop: AppTheme.spacing.xs
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: AppTheme.colors.primary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  selectedIndicatorText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700'
-  },
-  actionsSection: {
-    gap: AppTheme.spacing.sm
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: AppTheme.spacing.base,
-    borderRadius: AppTheme.borderRadius.lg,
-    ...AppTheme.shadows.medium
-  },
-  actionButtonDisabled: {
-    opacity: 0.5
-  },
-  shareButton: {
-    backgroundColor: AppTheme.colors.primary
-  },
-  saveButton: {
-    backgroundColor: AppTheme.colors.surface,
-    borderWidth: 2,
-    borderColor: AppTheme.colors.primary
-  },
-  actionButtonIcon: {
-    fontSize: 20,
-    marginRight: AppTheme.spacing.sm
-  },
-  actionButtonText: {
-    ...AppTheme.typography.button,
-    color: '#FFFFFF',
-    fontWeight: '600'
-  },
-  saveButtonText: {
-    color: AppTheme.colors.primary
-  },
-  backgroundTypeToggle: {
-    flexDirection: 'row',
-    gap: AppTheme.spacing.sm
-  },
-  backgroundTypeButton: {
-    flex: 1,
-    backgroundColor: AppTheme.colors.surface,
-    borderRadius: AppTheme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: AppTheme.colors.border,
-    padding: AppTheme.spacing.base,
-    alignItems: 'center'
-  },
-  backgroundTypeButtonActive: {
-    borderColor: AppTheme.colors.primary,
-    backgroundColor: AppTheme.colors.primary + '15'
-  },
-  backgroundTypeButtonText: {
-    ...AppTheme.typography.body,
-    fontWeight: '600',
-    color: AppTheme.colors.textSecondary
-  },
-  backgroundTypeButtonTextActive: {
-    color: AppTheme.colors.primary
-  },
-  photoInfoContainer: {
-    backgroundColor: AppTheme.colors.surface,
-    borderRadius: AppTheme.borderRadius.md,
-    padding: AppTheme.spacing.base,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: AppTheme.colors.border
-  },
-  photoInfoText: {
-    ...AppTheme.typography.body,
-    color: AppTheme.colors.textPrimary
-  },
-  changePhotoButton: {
-    backgroundColor: AppTheme.colors.primary + '20',
-    paddingHorizontal: AppTheme.spacing.base,
-    paddingVertical: AppTheme.spacing.sm,
-    borderRadius: AppTheme.borderRadius.sm
-  },
-  changePhotoButtonText: {
-    ...AppTheme.typography.body,
-    fontWeight: '600',
-    color: AppTheme.colors.primary,
-    fontSize: 14
-  }
-});
