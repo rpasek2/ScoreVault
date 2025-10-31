@@ -263,6 +263,7 @@
     "displayName": "Nombre para Mostrar",
     "enterDisplayName": "Ingresa tu nombre",
     "profileUpdated": "¡Perfil actualizado exitosamente!",
+    "profileUpdatedTemporary": "¡Perfil actualizado! Nota: Los cambios se guardan solo para esta sesión.",
     "appearance": "Apariencia",
     "lightMode": "Modo Claro",
     "darkMode": "Modo Oscuro",

@@ -1,22 +1,22 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-  Image
+  View
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -119,8 +119,8 @@ export default function SignInScreen() {
       alignItems: 'center'
     },
     logoImage: {
-      width: 320,
-      height: 140,
+      width: 774,
+      height: 338,
       marginBottom: 24
     },
     subtitle: {

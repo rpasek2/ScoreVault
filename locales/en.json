@@ -263,6 +263,7 @@
     "displayName": "Display Name",
     "enterDisplayName": "Enter your name",
     "profileUpdated": "Profile updated successfully!",
+    "profileUpdatedTemporary": "Profile updated! Note: Changes are saved for this session only.",
     "appearance": "Appearance",
     "lightMode": "Light Mode",
     "darkMode": "Dark Mode",
