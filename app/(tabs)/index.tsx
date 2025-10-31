@@ -458,7 +458,7 @@ export default function GymnastsScreen() {
           })}
         </ScrollView>
       )}
-      <FloatingActionButton onPress={handleAddGymnast} />
+      <FloatingActionButton onPress={handleAddGymnast} testID="fab-add-gymnast" />
     </View>
   );
 }

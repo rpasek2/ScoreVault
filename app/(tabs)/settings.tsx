@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getInitials, UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTutorial } from '@/contexts/TutorialContext';
 import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabaseSync('scorevault.db');
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { theme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { resetTutorial, startTutorial } = useTutorial();
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile>({});
 
@@ -109,6 +111,13 @@ export default function SettingsScreen() {
         }
       ]
     );
+  };
+
+  const handleShowTutorial = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await resetTutorial();
+    startTutorial();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleSignOut = async () => {
@@ -482,6 +491,25 @@ export default function SettingsScreen() {
               <View style={styles.menuContent}>
                 <Text style={styles.menuLabel}>{t('settings.helpFAQ')}</Text>
                 <Text style={styles.menuSubtext}>{t('settings.helpFAQ')}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuItemWrapper}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleShowTutorial}>
+            <LinearGradient
+              colors={theme.colors.cardGradient}
+              style={styles.menuItem}>
+              <View style={styles.menuIconContainer}>
+                <Text style={styles.menuIcon}>🎓</Text>
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuLabel}>{t('settings.showTutorial')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.learnTheBasics')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>

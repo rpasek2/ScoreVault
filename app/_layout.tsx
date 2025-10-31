@@ -8,6 +8,8 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { TutorialProvider } from '@/contexts/TutorialContext';
+import { Tutorial } from '@/components/Tutorial/Tutorial';
 import { initDatabase } from '@/utils/database';
 
 export const unstable_settings = {
@@ -124,6 +126,7 @@ function RootLayoutNav() {
         <Stack.Screen name="team-score-card-creator" options={{ presentation: 'card', title: 'Create Team Score Card' }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Tutorial />
     </NavigationThemeProvider>
   );
 }
@@ -132,9 +135,11 @@ export default function RootLayout() {
   return (
     <LanguageProvider>
       <ThemeProvider>
-        <AuthProvider>
-          <RootLayoutNav />
-        </AuthProvider>
+        <TutorialProvider>
+          <AuthProvider>
+            <RootLayoutNav />
+          </AuthProvider>
+        </TutorialProvider>
       </ThemeProvider>
     </LanguageProvider>
   );
