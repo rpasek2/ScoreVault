@@ -65,6 +65,9 @@ export default function GymnastProfileScreen() {
     if (!id) return;
 
     try {
+      // Add a small delay to ensure database is fully initialized after auth
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Fetch gymnast details from local database
       const gymnastData = await getGymnastById(id);
       if (gymnastData) {
@@ -101,9 +104,10 @@ export default function GymnastProfileScreen() {
         Alert.alert(t('common.error'), t('gymnasts.gymnastNotFound'));
         router.back();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching gymnast:', error);
-      Alert.alert(t('common.error'), t('gymnasts.failedToLoadProfile'));
+      const errorMessage = error?.message || error?.toString() || t('gymnasts.failedToLoadProfile');
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setLoading(false);
     }
