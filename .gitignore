@@ -51,3 +51,6 @@ coverage/
 
 # editor config
 .claude/
+
+# test credentials
+TEST_CREDENTIALS.md
