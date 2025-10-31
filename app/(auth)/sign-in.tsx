@@ -103,7 +103,7 @@ export default function SignInScreen() {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#6B6EFF' // Match gradient start color
+      backgroundColor: '#8B8EFF' // Match gradient start color
     },
     gradient: {
       flex: 1
@@ -119,9 +119,9 @@ export default function SignInScreen() {
       alignItems: 'center'
     },
     logoImage: {
-      width: 280,
-      height: 120,
-      marginBottom: 20
+      width: 320,
+      height: 140,
+      marginBottom: 24
     },
     subtitle: {
       ...theme.typography.body,
@@ -223,7 +223,7 @@ export default function SignInScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <LinearGradient
-        colors={['#6B6EFF', '#9B59B6']}
+        colors={['#8B8EFF', '#BB7DD6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}>
@@ -301,7 +301,7 @@ export default function SignInScreen() {
               disabled={loading}
               activeOpacity={0.8}>
               <LinearGradient
-                colors={['#6B6EFF', '#9B59B6']}
+                colors={['#7B7EFF', '#AB6DC6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.button, loading && styles.buttonDisabled]}>
