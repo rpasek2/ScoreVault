@@ -24,7 +24,8 @@ const getDatabaseName = (userId: string | null): string => {
 // Get current database instance
 const getDb = (): SQLite.SQLiteDatabase => {
   if (!db) {
-    throw new Error('Database not initialized. Call initDatabase first.');
+    console.error('Database access attempted but db is null. isInitialized:', isInitialized, 'isInitializing:', isInitializing, 'currentUserId:', currentUserId);
+    throw new Error(`Database not initialized. isInitialized: ${isInitialized}, isInitializing: ${isInitializing}, currentUserId: ${currentUserId}`);
   }
   return db;
 };
