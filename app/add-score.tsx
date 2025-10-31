@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { UI_PALETTE, CARD_SHADOW, WOMENS_EVENTS, MENS_EVENTS, EVENT_LABELS } from '@/constants/theme';
 import { Gymnast } from '@/types';
 import { getGymnasts, addScore } from '@/utils/database';
@@ -56,6 +57,7 @@ export default function AddScoreScreen() {
   const [loadingGymnasts, setLoadingGymnasts] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   // Fetch gymnasts
@@ -66,7 +68,7 @@ export default function AddScoreScreen() {
         setGymnasts(gymnastsList);
       } catch (error) {
         console.error('Error fetching gymnasts:', error);
-        Alert.alert('Error', 'Failed to load gymnasts');
+        Alert.alert(t('common.error'), t('gymnasts.failedToLoadGymnasts'));
       } finally {
         setLoadingGymnasts(false);
       }
@@ -109,12 +111,12 @@ export default function AddScoreScreen() {
   const handleSave = async () => {
     // Validation
     if (!meetId) {
-      Alert.alert('Error', 'No meet selected');
+      Alert.alert(t('common.error'), t('scores.noMeetSelected'));
       return;
     }
 
     if (!selectedGymnastId) {
-      Alert.alert('Error', 'Please select a gymnast');
+      Alert.alert(t('common.error'), t('scores.selectGymnast'));
       return;
     }
 
@@ -127,7 +129,7 @@ export default function AddScoreScreen() {
 
       // Check if at least one score is entered
       if (vaultNum === null && barsNum === null && beamNum === null && floorNum === null) {
-        Alert.alert('Error', 'Please enter at least one score');
+        Alert.alert(t('common.error'), t('scores.enterAtLeastOneScore'));
         return;
       }
 
@@ -136,7 +138,7 @@ export default function AddScoreScreen() {
           (barsNum !== null && (barsNum < 0 || barsNum > 10)) ||
           (beamNum !== null && (beamNum < 0 || beamNum > 10)) ||
           (floorNum !== null && (floorNum < 0 || floorNum > 10))) {
-        Alert.alert('Error', 'Scores must be between 0.000 and 10.000');
+        Alert.alert(t('common.error'), t('scores.womensScoreRange'));
         return;
       }
     } else {
@@ -151,7 +153,7 @@ export default function AddScoreScreen() {
       // Check if at least one score is entered
       if (floorNum === null && pommelHorseNum === null && ringsNum === null &&
           vaultNum === null && parallelBarsNum === null && highBarNum === null) {
-        Alert.alert('Error', 'Please enter at least one score');
+        Alert.alert(t('common.error'), t('scores.enterAtLeastOneScore'));
         return;
       }
 
@@ -162,7 +164,7 @@ export default function AddScoreScreen() {
           (vaultNum !== null && (vaultNum < 0 || vaultNum > 15)) ||
           (parallelBarsNum !== null && (parallelBarsNum < 0 || parallelBarsNum > 15)) ||
           (highBarNum !== null && (highBarNum < 0 || highBarNum > 15))) {
-        Alert.alert('Error', 'Scores must be between 0.000 and 15.000');
+        Alert.alert(t('common.error'), t('scores.mensScoreRange'));
         return;
       }
     }
@@ -210,7 +212,7 @@ export default function AddScoreScreen() {
 
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
       setLoading(false);
     }
   };
@@ -400,14 +402,14 @@ export default function AddScoreScreen() {
         colors={theme.colors.headerGradient}
         style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} disabled={loading}>
-          <Text style={[styles.cancelButton, loading && styles.disabled]}>Cancel</Text>
+          <Text style={[styles.cancelButton, loading && styles.disabled]}>{t('common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Add Score</Text>
+        <Text style={styles.title}>{t('scores.addScore')}</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
           {loading ? (
             <ActivityIndicator color={theme.colors.primary} />
           ) : (
-            <Text style={styles.saveButton}>Save</Text>
+            <Text style={styles.saveButton}>{t('common.save')}</Text>
           )}
         </TouchableOpacity>
       </LinearGradient>
@@ -419,15 +421,15 @@ export default function AddScoreScreen() {
         <LinearGradient
           colors={theme.colors.cardGradient}
           style={styles.section}>
-          <Text style={styles.sectionTitle}>Gymnast</Text>
+          <Text style={styles.sectionTitle}>{t('scores.gymnast')}</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              Select Gymnast <Text style={styles.required}>*</Text>
+              {t('scores.selectGymnast')} <Text style={styles.required}>*</Text>
             </Text>
             {gymnasts.length === 0 ? (
               <Text style={styles.noGymnastsText}>
-                No gymnasts found. Please add a gymnast first.
+                {t('scores.noGymnastsFound')}
               </Text>
             ) : (
               <View>
@@ -442,7 +444,7 @@ export default function AddScoreScreen() {
                     ]}>
                     {selectedGymnastId
                       ? gymnasts.find(g => g.id === selectedGymnastId)?.name
-                      : 'Select a gymnast'}
+                      : t('scores.selectAGymnast')}
                   </Text>
                   <Text style={styles.dropdownIcon}>{dropdownOpen ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
@@ -477,14 +479,14 @@ export default function AddScoreScreen() {
         <LinearGradient
           colors={theme.colors.cardGradient}
           style={styles.section}>
-          <Text style={styles.sectionTitle}>Scores</Text>
+          <Text style={styles.sectionTitle}>{t('scores.scores')}</Text>
 
           {selectedDiscipline === 'Womens' ? (
             <>
               {/* Womens Events: Vault, Bars, Beam, Floor */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Vault</Text>
+                  <Text style={styles.label}>{t('scores.vault')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -497,7 +499,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Bars</Text>
+                  <Text style={styles.label}>{t('scores.bars')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -512,7 +514,7 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Beam</Text>
+                  <Text style={styles.label}>{t('scores.beam')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -525,7 +527,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Floor</Text>
+                  <Text style={styles.label}>{t('scores.floor')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -543,7 +545,7 @@ export default function AddScoreScreen() {
               {/* Mens Events: Floor, Pommel Horse, Rings, Vault, Parallel Bars, High Bar */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Floor</Text>
+                  <Text style={styles.label}>{t('scores.floor')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -556,7 +558,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Pommel Horse</Text>
+                  <Text style={styles.label}>{t('scores.pommelHorse')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -571,7 +573,7 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Rings</Text>
+                  <Text style={styles.label}>{t('scores.rings')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -584,7 +586,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Vault</Text>
+                  <Text style={styles.label}>{t('scores.vault')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -599,7 +601,7 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Parallel Bars</Text>
+                  <Text style={styles.label}>{t('scores.parallelBars')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -612,7 +614,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>High Bar</Text>
+                  <Text style={styles.label}>{t('scores.highBar')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0.000"
@@ -632,7 +634,7 @@ export default function AddScoreScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.allAroundBox}>
-            <Text style={styles.allAroundLabel}>All-Around</Text>
+            <Text style={styles.allAroundLabel}>{t('scores.allAround')}</Text>
             <Text style={styles.allAroundValue}>{allAround}</Text>
           </LinearGradient>
         </LinearGradient>
@@ -641,14 +643,14 @@ export default function AddScoreScreen() {
         <LinearGradient
           colors={theme.colors.cardGradient}
           style={styles.section}>
-          <Text style={styles.sectionTitle}>Placements (Optional)</Text>
+          <Text style={styles.sectionTitle}>{t('scores.placements')}</Text>
 
           {selectedDiscipline === 'Womens' ? (
             <>
               {/* Womens Placements: Vault, Bars, Beam, Floor */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Vault Place</Text>
+                  <Text style={styles.label}>{t('scores.vaultPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -661,7 +663,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Bars Place</Text>
+                  <Text style={styles.label}>{t('scores.barsPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -676,7 +678,7 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Beam Place</Text>
+                  <Text style={styles.label}>{t('scores.beamPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -689,7 +691,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Floor Place</Text>
+                  <Text style={styles.label}>{t('scores.floorPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -707,7 +709,7 @@ export default function AddScoreScreen() {
               {/* Mens Placements: Floor, Pommel Horse, Rings, Vault, Parallel Bars, High Bar */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Floor Place</Text>
+                  <Text style={styles.label}>{t('scores.floorPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -720,7 +722,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Pommel Horse Place</Text>
+                  <Text style={styles.label}>{t('scores.pommelHorsePlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -735,7 +737,7 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Rings Place</Text>
+                  <Text style={styles.label}>{t('scores.ringsPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -748,7 +750,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Vault Place</Text>
+                  <Text style={styles.label}>{t('scores.vaultPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -763,7 +765,7 @@ export default function AddScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Parallel Bars Place</Text>
+                  <Text style={styles.label}>{t('scores.parallelBarsPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -776,7 +778,7 @@ export default function AddScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>High Bar Place</Text>
+                  <Text style={styles.label}>{t('scores.highBarPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -792,7 +794,7 @@ export default function AddScoreScreen() {
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>All-Around Place</Text>
+            <Text style={styles.label}>{t('scores.allAroundPlace')}</Text>
             <TextInput
               style={styles.input}
               placeholder=""

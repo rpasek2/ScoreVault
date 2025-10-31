@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CARD_SHADOW } from '@/constants/theme';
 import { Gymnast } from '@/types';
 import { getHiddenGymnasts, unhideGymnast } from '@/utils/database';
@@ -21,6 +22,7 @@ export default function HiddenGymnastsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const fetchHiddenGymnasts = async () => {
@@ -29,7 +31,7 @@ export default function HiddenGymnastsScreen() {
       setHiddenGymnasts(gymnasts);
     } catch (error) {
       console.error('Error fetching hidden gymnasts:', error);
-      Alert.alert('Error', 'Failed to load hidden gymnasts');
+      Alert.alert(t('common.error'), t('gymnasts.failedToLoadHidden'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,16 +45,16 @@ export default function HiddenGymnastsScreen() {
   const handleUnhide = (gymnast: Gymnast) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Unhide Gymnast',
-      `Restore "${gymnast.name}" to the active roster?`,
+      t('gymnasts.unhideGymnast'),
+      t('gymnasts.unhideConfirm', { name: gymnast.name }),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Unhide',
+          text: t('gymnasts.unhide'),
           style: 'default',
           onPress: async () => {
             try {
@@ -62,7 +64,7 @@ export default function HiddenGymnastsScreen() {
               await fetchHiddenGymnasts();
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Error', error.message || 'Failed to unhide gymnast');
+              Alert.alert(t('common.error'), error.message || t('gymnasts.failedToUnhide'));
             }
           }
         }
@@ -186,9 +188,11 @@ export default function HiddenGymnastsScreen() {
       <LinearGradient
         colors={theme.colors.headerGradient}
         style={styles.header}>
-        <Text style={styles.headerTitle}>Hidden Gymnasts</Text>
+        <Text style={styles.headerTitle}>{t('gymnasts.hiddenGymnasts')}</Text>
         <Text style={styles.headerSubtitle}>
-          {hiddenGymnasts.length} {hiddenGymnasts.length === 1 ? 'gymnast' : 'gymnasts'} hidden
+          {hiddenGymnasts.length === 1
+            ? t('gymnasts.oneGymnastHidden')
+            : t('gymnasts.xGymnastsHidden', { count: hiddenGymnasts.length })}
         </Text>
       </LinearGradient>
 
@@ -201,9 +205,9 @@ export default function HiddenGymnastsScreen() {
             style={styles.emptyIconContainer}>
             <Text style={styles.emptyIcon}>👁️</Text>
           </LinearGradient>
-          <Text style={styles.emptyText}>No Hidden Gymnasts</Text>
+          <Text style={styles.emptyText}>{t('gymnasts.noHiddenGymnasts')}</Text>
           <Text style={styles.emptySubtext}>
-            When you hide a gymnast, they'll appear here. You can unhide them anytime to restore them to the active roster.
+            {t('gymnasts.hiddenGymnastsExplanation')}
           </Text>
         </View>
       ) : (
@@ -223,7 +227,7 @@ export default function HiddenGymnastsScreen() {
                   </View>
                   <View style={styles.detailBadge}>
                     <Text style={styles.detailText}>
-                      {gymnast.discipline === 'Mens' ? "Men's" : "Women's"}
+                      {gymnast.discipline === 'Mens' ? t('gymnasts.mens') : t('gymnasts.womens')}
                     </Text>
                   </View>
                 </View>
@@ -236,7 +240,7 @@ export default function HiddenGymnastsScreen() {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.unhideButton}>
-                  <Text style={styles.unhideButtonText}>Unhide</Text>
+                  <Text style={styles.unhideButtonText}>{t('gymnasts.unhide')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>

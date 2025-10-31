@@ -1,15 +1,37 @@
 import * as SQLite from 'expo-sqlite';
 import * as Application from 'expo-application';
 import { Platform } from 'react-native';
-import { Gymnast, Meet, Score } from '@/types';
+import { Gymnast, Meet, Score, TeamPlacement } from '@/types';
 import { db as firestore } from '@/config/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 // Open database
 const db = SQLite.openDatabaseSync('scorevault.db');
 
+// Track if database has been initialized
+let isInitialized = false;
+
+// Helper function to check if a column exists in a table
+const columnExists = async (tableName: string, columnName: string): Promise<boolean> => {
+  try {
+    const result = await db.getAllAsync<{ name: string }>(
+      `PRAGMA table_info(${tableName})`
+    );
+    return result.some(col => col.name === columnName);
+  } catch (error) {
+    console.error(`Error checking column ${columnName}:`, error);
+    return false;
+  }
+};
+
 // Initialize database tables
 export const initDatabase = async () => {
+  // Prevent multiple initializations
+  if (isInitialized) {
+    console.log('Database already initialized, skipping');
+    return;
+  }
+
   try {
     // Create gymnasts table
     await db.execAsync(`
@@ -20,6 +42,7 @@ export const initDatabase = async () => {
         usagNumber TEXT,
         level TEXT NOT NULL,
         discipline TEXT NOT NULL,
+        photoUri TEXT,
         isHidden INTEGER DEFAULT 0,
         createdAt INTEGER NOT NULL
       );
@@ -27,10 +50,13 @@ export const initDatabase = async () => {
     `);
 
     // Add isHidden column if it doesn't exist (for existing databases)
-    try {
+    if (!(await columnExists('gymnasts', 'isHidden'))) {
       await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
-    } catch (e) {
-      // Column already exists, ignore error
+    }
+
+    // Add photoUri column if it doesn't exist (for existing databases)
+    if (!(await columnExists('gymnasts', 'photoUri'))) {
+      await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN photoUri TEXT`);
     }
 
     // Create meets table
@@ -80,6 +106,32 @@ export const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_scores_gymnastId ON scores(gymnastId);
     `);
 
+    // Create team_placements table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS team_placements (
+        id TEXT PRIMARY KEY,
+        meetId TEXT NOT NULL,
+        level TEXT NOT NULL,
+        discipline TEXT NOT NULL,
+        vaultPlacement INTEGER,
+        barsPlacement INTEGER,
+        beamPlacement INTEGER,
+        floorPlacement INTEGER,
+        pommelHorsePlacement INTEGER,
+        ringsPlacement INTEGER,
+        parallelBarsPlacement INTEGER,
+        highBarPlacement INTEGER,
+        allAroundPlacement INTEGER,
+        createdAt INTEGER NOT NULL,
+        FOREIGN KEY (meetId) REFERENCES meets(id) ON DELETE CASCADE,
+        UNIQUE(meetId, level, discipline)
+      );
+      CREATE INDEX IF NOT EXISTS idx_team_placements_meetId ON team_placements(meetId);
+      CREATE INDEX IF NOT EXISTS idx_team_placements_level ON team_placements(level);
+    `);
+
+    // Mark as initialized
+    isInitialized = true;
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
@@ -109,9 +161,9 @@ export const addGymnast = async (data: Omit<Gymnast, 'id' | 'createdAt' | 'userI
   const dateOfBirth = data.dateOfBirth ? timestampToMs(data.dateOfBirth) : null;
 
   await db.runAsync(
-    `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, isHidden, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, data.name, dateOfBirth, data.usagNumber || null, data.level, data.discipline, 0, createdAt]
+    `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, photoUri, isHidden, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, data.name, dateOfBirth, data.usagNumber || null, data.level, data.discipline, data.photoUri || null, 0, createdAt]
   );
 
   return id;
@@ -140,6 +192,7 @@ export const getGymnasts = async (includeHidden: boolean = false): Promise<Gymna
     usagNumber: row.usagNumber || undefined,
     level: row.level,
     discipline: row.discipline as 'Womens' | 'Mens',
+    photoUri: row.photoUri || undefined,
     isHidden: row.isHidden === 1,
     createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
   })) as Gymnast[];
@@ -158,6 +211,7 @@ export const getGymnastById = async (id: string): Promise<Gymnast | null> => {
     usagNumber: result.usagNumber || undefined,
     level: result.level,
     discipline: result.discipline as 'Womens' | 'Mens',
+    photoUri: result.photoUri || undefined,
     isHidden: result.isHidden === 1,
     createdAt: { toMillis: () => result.createdAt, toDate: () => new Date(result.createdAt) }
   } as Gymnast;
@@ -197,6 +251,7 @@ export const getHiddenGymnasts = async (): Promise<Gymnast[]> => {
       usagNumber: row.usagNumber || undefined,
       level: row.level,
       discipline: row.discipline as 'Womens' | 'Mens',
+      photoUri: row.photoUri || undefined,
       isHidden: row.isHidden === 1,
       createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
     })) as Gymnast[];
@@ -230,6 +285,10 @@ export const updateGymnast = async (id: string, data: Partial<Omit<Gymnast, 'id'
   if (data.discipline !== undefined) {
     updates.push('discipline = ?');
     values.push(data.discipline);
+  }
+  if (data.photoUri !== undefined) {
+    updates.push('photoUri = ?');
+    values.push(data.photoUri || null);
   }
 
   if (updates.length === 0) return;
@@ -541,20 +600,155 @@ export const getScoreCountByMeet = async (meetId: string): Promise<number> => {
   return result?.count || 0;
 };
 
+// ========== TEAM PLACEMENTS ==========
+
+// Helper function to convert database row to TeamPlacement
+const rowToTeamPlacement = (row: any): TeamPlacement => ({
+  id: row.id,
+  userId: '', // Team placements are shared across users in local storage
+  meetId: row.meetId,
+  level: row.level,
+  discipline: row.discipline,
+  placements: {
+    vault: row.vaultPlacement,
+    bars: row.barsPlacement,
+    beam: row.beamPlacement,
+    floor: row.floorPlacement,
+    pommelHorse: row.pommelHorsePlacement,
+    rings: row.ringsPlacement,
+    parallelBars: row.parallelBarsPlacement,
+    highBar: row.highBarPlacement,
+    allAround: row.allAroundPlacement
+  },
+  createdAt: { toMillis: () => row.createdAt, toDate: () => new Date(row.createdAt) }
+});
+
+export const saveTeamPlacement = async (
+  meetId: string,
+  level: string,
+  discipline: 'Womens' | 'Mens',
+  placements: Partial<{
+    vault?: number;
+    bars?: number;
+    beam?: number;
+    floor?: number;
+    pommelHorse?: number;
+    rings?: number;
+    parallelBars?: number;
+    highBar?: number;
+    allAround?: number;
+  }>
+): Promise<string> => {
+  const createdAt = Date.now();
+
+  // Check if entry exists
+  const existing = await db.getFirstAsync<any>(
+    'SELECT id FROM team_placements WHERE meetId = ? AND level = ? AND discipline = ?',
+    [meetId, level, discipline]
+  );
+
+  if (existing) {
+    // Update existing
+    await db.runAsync(
+      `UPDATE team_placements SET
+        vaultPlacement = ?,
+        barsPlacement = ?,
+        beamPlacement = ?,
+        floorPlacement = ?,
+        pommelHorsePlacement = ?,
+        ringsPlacement = ?,
+        parallelBarsPlacement = ?,
+        highBarPlacement = ?,
+        allAroundPlacement = ?
+      WHERE id = ?`,
+      [
+        placements.vault || null,
+        placements.bars || null,
+        placements.beam || null,
+        placements.floor || null,
+        placements.pommelHorse || null,
+        placements.rings || null,
+        placements.parallelBars || null,
+        placements.highBar || null,
+        placements.allAround || null,
+        existing.id
+      ]
+    );
+    return existing.id;
+  } else {
+    // Insert new
+    const id = generateId();
+    await db.runAsync(
+      `INSERT INTO team_placements (
+        id, meetId, level, discipline,
+        vaultPlacement, barsPlacement, beamPlacement, floorPlacement,
+        pommelHorsePlacement, ringsPlacement, parallelBarsPlacement, highBarPlacement,
+        allAroundPlacement, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, meetId, level, discipline,
+        placements.vault || null,
+        placements.bars || null,
+        placements.beam || null,
+        placements.floor || null,
+        placements.pommelHorse || null,
+        placements.rings || null,
+        placements.parallelBars || null,
+        placements.highBar || null,
+        placements.allAround || null,
+        createdAt
+      ]
+    );
+    return id;
+  }
+};
+
+export const getTeamPlacement = async (
+  meetId: string,
+  level: string,
+  discipline: 'Womens' | 'Mens'
+): Promise<TeamPlacement | null> => {
+  const result = await db.getFirstAsync<any>(
+    'SELECT * FROM team_placements WHERE meetId = ? AND level = ? AND discipline = ?',
+    [meetId, level, discipline]
+  );
+
+  return result ? rowToTeamPlacement(result) : null;
+};
+
+export const getTeamPlacementsByMeet = async (meetId: string): Promise<TeamPlacement[]> => {
+  const result = await db.getAllAsync<any>(
+    'SELECT * FROM team_placements WHERE meetId = ?',
+    [meetId]
+  );
+
+  return result.map(rowToTeamPlacement);
+};
+
+export const deleteTeamPlacement = async (id: string): Promise<void> => {
+  await db.runAsync('DELETE FROM team_placements WHERE id = ?', [id]);
+};
+
 // ========== DATA EXPORT/IMPORT ==========
 
-export const exportAllData = async (): Promise<{ gymnasts: Gymnast[]; meets: Meet[]; scores: Score[] }> => {
+export const getAllTeamPlacements = async (): Promise<TeamPlacement[]> => {
+  const result = await db.getAllAsync<any>('SELECT * FROM team_placements ORDER BY createdAt DESC');
+  return result.map(rowToTeamPlacement);
+};
+
+export const exportAllData = async (): Promise<{ gymnasts: Gymnast[]; meets: Meet[]; scores: Score[]; teamPlacements: TeamPlacement[] }> => {
   const gymnasts = await getGymnasts();
   const meets = await getMeets();
   const scores = await getScores();
+  const teamPlacements = await getAllTeamPlacements();
 
-  return { gymnasts, meets, scores };
+  return { gymnasts, meets, scores, teamPlacements };
 };
 
-export const importAllData = async (data: { gymnasts: any[]; meets: any[]; scores: any[] }): Promise<void> => {
+export const importAllData = async (data: { gymnasts: any[]; meets: any[]; scores: any[]; teamPlacements?: any[] }): Promise<void> => {
   try {
     // Clear existing data
-    await db.execAsync('DELETE FROM scores; DELETE FROM meets; DELETE FROM gymnasts;');
+    await db.execAsync('DELETE FROM team_placements; DELETE FROM scores; DELETE FROM meets; DELETE FROM gymnasts;');
 
     // Import gymnasts
     for (const gymnast of data.gymnasts) {
@@ -627,6 +821,36 @@ export const importAllData = async (data: { gymnasts: any[]; meets: any[]; score
       );
     }
 
+    // Import team placements
+    if (data.teamPlacements && data.teamPlacements.length > 0) {
+      for (const placement of data.teamPlacements) {
+        await db.runAsync(
+          `INSERT INTO team_placements (
+            id, meetId, level, discipline,
+            vaultPlacement, barsPlacement, beamPlacement, floorPlacement,
+            pommelHorsePlacement, ringsPlacement, parallelBarsPlacement, highBarPlacement,
+            allAroundPlacement, createdAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            placement.id,
+            placement.meetId,
+            placement.level,
+            placement.discipline,
+            placement.placements.vault || null,
+            placement.placements.bars || null,
+            placement.placements.beam || null,
+            placement.placements.floor || null,
+            placement.placements.pommelHorse || null,
+            placement.placements.rings || null,
+            placement.placements.parallelBars || null,
+            placement.placements.highBar || null,
+            placement.placements.allAround || null,
+            timestampToMs(placement.createdAt)
+          ]
+        );
+      }
+    }
+
     console.log('Data imported successfully');
   } catch (error) {
     console.error('Error importing data:', error);
@@ -696,6 +920,25 @@ export const backupToFirebase = async (userId: string): Promise<{ success: boole
           allAround: s.placements.allAround || null
         },
         createdAt: timestampToMs(s.createdAt)
+      })),
+      teamPlacements: allData.teamPlacements.map(tp => ({
+        id: tp.id,
+        userId: tp.userId,
+        meetId: tp.meetId,
+        level: tp.level,
+        discipline: tp.discipline,
+        placements: {
+          vault: tp.placements.vault || null,
+          bars: tp.placements.bars || null,
+          beam: tp.placements.beam || null,
+          floor: tp.placements.floor || null,
+          pommelHorse: tp.placements.pommelHorse || null,
+          rings: tp.placements.rings || null,
+          parallelBars: tp.placements.parallelBars || null,
+          highBar: tp.placements.highBar || null,
+          allAround: tp.placements.allAround || null
+        },
+        createdAt: timestampToMs(tp.createdAt)
       }))
     };
 

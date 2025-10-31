@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import { initDatabase } from '@/utils/database';
 
 export const unstable_settings = {
@@ -120,6 +121,7 @@ function RootLayoutNav() {
         <Stack.Screen name="help" options={{ presentation: 'card', title: 'Help' }} />
         <Stack.Screen name="privacy" options={{ presentation: 'card', title: 'Privacy Policy' }} />
         <Stack.Screen name="score-card-creator" options={{ presentation: 'card', title: 'Create Score Card' }} />
+        <Stack.Screen name="team-score-card-creator" options={{ presentation: 'card', title: 'Create Team Score Card' }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavigationThemeProvider>
@@ -128,10 +130,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }

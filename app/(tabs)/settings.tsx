@@ -1,16 +1,47 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Platform, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Platform, Linking, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { getInitials, UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import * as SQLite from 'expo-sqlite';
+
+const db = SQLite.openDatabaseSync('scorevault.db');
+
+interface UserProfile {
+  displayName?: string;
+  photoUri?: string;
+}
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { theme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
+  const [userProfile, setUserProfile] = useState<UserProfile>({});
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserProfile();
+    }, [])
+  );
+
+  const loadUserProfile = async () => {
+    try {
+      const result = await db.getFirstAsync<UserProfile>(
+        'SELECT displayName, photoUri FROM user_profile WHERE id = 1'
+      );
+      if (result) {
+        setUserProfile(result);
+      }
+    } catch (error) {
+      console.log('Error loading user profile:', error);
+    }
+  };
 
   const handleRateApp = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -44,23 +75,52 @@ export default function SettingsScreen() {
       // App not yet published - show thank you message
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        '⭐ Thank You!',
-        'ScoreVault will be available on the App Store and Google Play Store soon!\n\nWe appreciate your support and will notify you when you can leave a review.',
-        [{ text: 'OK' }]
+        t('settings.thankYou'),
+        t('settings.appComingSoon'),
+        [{ text: t('common.ok') }]
       );
     }
   };
 
+  const handleLanguageChange = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Language / Idioma',
+      'Select your preferred language\nSelecciona tu idioma preferido',
+      [
+        {
+          text: 'English',
+          onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            await setLanguage('en');
+          }
+        },
+        {
+          text: 'Español',
+          onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            await setLanguage('es');
+          }
+        },
+        {
+          text: 'Cancel / Cancelar',
+          style: 'cancel',
+          onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        }
+      ]
+    );
+  };
+
   const handleSignOut = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    Alert.alert(t('auth.signOut'), t('auth.signOut') + '?', [
       {
-        text: 'Cancel',
+        text: t('common.cancel'),
         style: 'cancel',
         onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
       },
       {
-        text: 'Sign Out',
+        text: t('auth.signOut'),
         style: 'destructive',
         onPress: async () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -68,15 +128,16 @@ export default function SettingsScreen() {
             await signOut();
           } catch (error: any) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert('Error', error.message);
+            Alert.alert(t('common.error'), error.message);
           }
         }
       }
     ]);
   };
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
+  const displayName = userProfile.displayName || user?.email?.split('@')[0] || 'User';
   const email = user?.email || '';
+  const photoUri = userProfile.photoUri;
   const initials = getInitials(displayName);
 
   const styles = StyleSheet.create({
@@ -97,6 +158,11 @@ export default function SettingsScreen() {
       alignItems: 'center',
       marginBottom: theme.spacing.base,
       ...theme.shadows.medium
+    },
+    avatarImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 40
     },
     avatarText: {
       ...theme.typography.h1,
@@ -217,20 +283,24 @@ export default function SettingsScreen() {
       <LinearGradient
         colors={theme.colors.headerGradient}
         style={styles.profileSection}>
-        <LinearGradient
-          colors={theme.colors.avatarGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </LinearGradient>
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+        ) : (
+          <LinearGradient
+            colors={theme.colors.avatarGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </LinearGradient>
+        )}
         <Text style={styles.displayName}>{displayName}</Text>
         <Text style={styles.email}>{email}</Text>
       </LinearGradient>
 
       {/* Account Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>{t('settings.profile')}</Text>
 
         <View style={styles.menuItemWrapper}>
           <TouchableOpacity
@@ -243,8 +313,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>👤</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Profile Settings</Text>
-                <Text style={styles.menuSubtext}>Manage your personal information</Text>
+                <Text style={styles.menuLabel}>{t('settings.profileSettings')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.profileSettings')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -262,8 +332,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>🔐</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Privacy & Security</Text>
-                <Text style={styles.menuSubtext}>Password, authentication</Text>
+                <Text style={styles.menuLabel}>{t('settings.privacySecurity')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.changePassword')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -273,7 +343,7 @@ export default function SettingsScreen() {
 
       {/* Data Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Data</Text>
+        <Text style={styles.sectionTitle}>{t('settings.exportData')}</Text>
 
         <View style={styles.menuItemWrapper}>
           <TouchableOpacity
@@ -286,8 +356,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>☁️</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Cloud Backup</Text>
-                <Text style={styles.menuSubtext}>Backup & restore from cloud</Text>
+                <Text style={styles.menuLabel}>{t('settings.cloudBackup')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.backupNow')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -305,8 +375,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>📤</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Export Data</Text>
-                <Text style={styles.menuSubtext}>Download your scores and meets</Text>
+                <Text style={styles.menuLabel}>{t('settings.exportData')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.exportData')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -324,8 +394,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>📥</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Import Data</Text>
-                <Text style={styles.menuSubtext}>Restore from JSON backup</Text>
+                <Text style={styles.menuLabel}>{t('settings.importData')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.importJSON')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -343,8 +413,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>👁️</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Hidden Gymnasts</Text>
-                <Text style={styles.menuSubtext}>Manage inactive roster</Text>
+                <Text style={styles.menuLabel}>{t('settings.hiddenGymnasts')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.hiddenGymnasts')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -354,7 +424,7 @@ export default function SettingsScreen() {
 
       {/* App Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App</Text>
+        <Text style={styles.sectionTitle}>{t('common.settings')}</Text>
 
         <View style={styles.menuItemWrapper}>
           <TouchableOpacity
@@ -367,8 +437,27 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>🎨</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Appearance</Text>
-                <Text style={styles.menuSubtext}>Theme and color preferences</Text>
+                <Text style={styles.menuLabel}>{t('settings.appearance')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.appearance')}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuItemWrapper}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleLanguageChange}>
+            <LinearGradient
+              colors={theme.colors.cardGradient}
+              style={styles.menuItem}>
+              <View style={styles.menuIconContainer}>
+                <Text style={styles.menuIcon}>🌐</Text>
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuLabel}>{t('settings.language')}</Text>
+                <Text style={styles.menuSubtext}>{language === 'en' ? t('settings.english') : t('settings.spanish')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -378,7 +467,7 @@ export default function SettingsScreen() {
 
       {/* Support Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Support</Text>
+        <Text style={styles.sectionTitle}>{t('common.help')}</Text>
 
         <View style={styles.menuItemWrapper}>
           <TouchableOpacity
@@ -391,8 +480,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>❓</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Help & FAQ</Text>
-                <Text style={styles.menuSubtext}>Get answers to common questions</Text>
+                <Text style={styles.menuLabel}>{t('settings.helpFAQ')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.helpFAQ')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -410,8 +499,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>📧</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Contact Support</Text>
-                <Text style={styles.menuSubtext}>Reach out to our team</Text>
+                <Text style={styles.menuLabel}>{t('settings.contactSupport')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.contactSupport')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -429,8 +518,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>⭐</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Rate ScoreVault</Text>
-                <Text style={styles.menuSubtext}>Love the app? Let us know!</Text>
+                <Text style={styles.menuLabel}>{t('settings.rateApp')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.shareYourFeedback')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -448,8 +537,8 @@ export default function SettingsScreen() {
                 <Text style={styles.menuIcon}>🔒</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuLabel}>Privacy Policy</Text>
-                <Text style={styles.menuSubtext}>How we handle your data</Text>
+                <Text style={styles.menuLabel}>{t('settings.privacyPolicy')}</Text>
+                <Text style={styles.menuSubtext}>{t('settings.howWeHandleData')}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </LinearGradient>
@@ -464,14 +553,14 @@ export default function SettingsScreen() {
         <LinearGradient
           colors={theme.colors.cardGradient}
           style={styles.signOutButton}>
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>{t('auth.signOut')}</Text>
         </LinearGradient>
       </TouchableOpacity>
 
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.version}>ScoreVault v1.0.0</Text>
-        <Text style={styles.footerText}>Made with ❤️ for gymnasts</Text>
+        <Text style={styles.footerText}>{t('settings.madeWithLove')}</Text>
       </View>
     </ScrollView>
   );

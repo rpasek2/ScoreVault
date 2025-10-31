@@ -14,6 +14,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { importAllData } from '@/utils/database';
 
 interface ImportResult {
@@ -25,6 +26,7 @@ interface ImportResult {
 
 export default function ImportDataScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
@@ -153,12 +155,12 @@ export default function ImportDataScreen() {
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        Alert.alert('Success', `Template saved to ${fileUri}`);
+        Alert.alert(t('common.success'), t('import.templateSaved', { path: fileUri }));
       }
     } catch (error: any) {
       console.error('Download template error:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error.message || 'Failed to download template');
+      Alert.alert(t('common.error'), error.message || t('import.failedToDownloadTemplate'));
     } finally {
       setDownloadingTemplate(false);
     }
@@ -186,23 +188,23 @@ export default function ImportDataScreen() {
 
       // Confirm with user before importing
       Alert.alert(
-        'Confirm Import',
-        'This will import all data from the backup file. This may take a moment. Continue?',
+        t('import.confirmImport'),
+        t('import.confirmImportMessage'),
         [
           {
-            text: 'Cancel',
+            text: t('common.cancel'),
             style: 'cancel',
             onPress: () => setLoading(false)
           },
           {
-            text: 'Import',
+            text: t('import.import'),
             onPress: async () => {
               try {
                 const data = JSON.parse(text);
 
                 // Validate data structure
                 if (!data.gymnasts || !data.meets || !data.scores) {
-                  throw new Error('Invalid backup file format. Expected gymnasts, meets, and scores arrays.');
+                  throw new Error(t('import.invalidBackupFormat'));
                 }
 
                 // Import all data using the database function
@@ -223,13 +225,17 @@ export default function ImportDataScreen() {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
                 Alert.alert(
-                  'Import Complete',
-                  `Successfully imported:\n• ${importResult.gymnasts} gymnasts\n• ${importResult.meets} meets\n• ${importResult.scores} scores`,
-                  [{ text: 'OK', onPress: () => router.back() }]
+                  t('import.importComplete'),
+                  t('import.importCompleteMessage', {
+                    gymnasts: importResult.gymnasts,
+                    meets: importResult.meets,
+                    scores: importResult.scores
+                  }),
+                  [{ text: t('common.ok'), onPress: () => router.back() }]
                 );
               } catch (error: any) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert('Import Failed', error.message || 'Failed to import data');
+                Alert.alert(t('import.importFailed'), error.message || t('settings.importError'));
               } finally {
                 setLoading(false);
               }
@@ -239,7 +245,7 @@ export default function ImportDataScreen() {
       );
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Import Failed', error.message || 'Failed to import data');
+      Alert.alert(t('import.importFailed'), error.message || t('settings.importError'));
       setLoading(false);
     }
   };
@@ -386,24 +392,24 @@ export default function ImportDataScreen() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Import Data</Text>
+          <Text style={styles.title}>{t('settings.importData')}</Text>
           <Text style={styles.subtitle}>
-            Restore your gymnastics data from a JSON backup file
+            {t('import.subtitle')}
           </Text>
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>📋 Supported Format</Text>
+          <Text style={styles.infoTitle}>{t('import.supportedFormat')}</Text>
 
           <View style={styles.formatCard}>
-            <Text style={styles.formatTitle}>JSON Backup Files Only</Text>
+            <Text style={styles.formatTitle}>{t('import.jsonOnly')}</Text>
             <Text style={styles.formatDescription}>
-              Only JSON files exported from ScoreVault can be imported. CSV files cannot be imported - they are for viewing in spreadsheet apps only.
+              {t('import.jsonOnlyDescription')}
             </Text>
           </View>
 
           <Text style={styles.formatDescription}>
-            Need to create a custom import file? Download the template below to see the exact structure required.
+            {t('import.customFilePrompt')}
           </Text>
 
           <TouchableOpacity
@@ -416,38 +422,38 @@ export default function ImportDataScreen() {
             ) : (
               <>
                 <Text style={styles.templateButtonIcon}>📄</Text>
-                <Text style={styles.templateButtonText}>Download Import Template</Text>
+                <Text style={styles.templateButtonText}>{t('import.downloadTemplate')}</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.warningSection}>
-          <Text style={styles.warningTitle}>⚠️ Important Notes</Text>
+          <Text style={styles.warningTitle}>{t('import.importantNotes')}</Text>
           <Text style={styles.warningText}>
-            • This will replace all existing data with the imported data
+            • {t('import.note1')}
           </Text>
           <Text style={styles.warningText}>
-            • Make sure to export your current data first if needed
+            • {t('import.note2')}
           </Text>
           <Text style={styles.warningText}>
-            • Cloud backup will not be replaced until you backup again
+            • {t('import.note3')}
           </Text>
           <Text style={styles.warningText}>
-            • Only import JSON files exported from ScoreVault
+            • {t('import.note4')}
           </Text>
           <Text style={styles.warningText}>
-            • The import process may take a moment to complete
+            • {t('import.note5')}
           </Text>
         </View>
 
         {result && (
           <View style={styles.resultSection}>
-            <Text style={styles.resultTitle}>Import Summary</Text>
+            <Text style={styles.resultTitle}>{t('import.importSummary')}</Text>
             <View style={styles.resultCard}>
-              <Text style={styles.resultText}>✓ {result.gymnasts} Gymnasts imported</Text>
-              <Text style={styles.resultText}>✓ {result.meets} Meets imported</Text>
-              <Text style={styles.resultText}>✓ {result.scores} Scores imported</Text>
+              <Text style={styles.resultText}>✓ {t('import.gymnastsImported', { count: result.gymnasts })}</Text>
+              <Text style={styles.resultText}>✓ {t('import.meetsImported', { count: result.meets })}</Text>
+              <Text style={styles.resultText}>✓ {t('import.scoresImported', { count: result.scores })}</Text>
             </View>
           </View>
         )}
@@ -462,7 +468,7 @@ export default function ImportDataScreen() {
           ) : (
             <>
               <Text style={styles.importButtonIcon}>📁</Text>
-              <Text style={styles.importButtonText}>Select File to Import</Text>
+              <Text style={styles.importButtonText}>{t('import.selectFileToImport')}</Text>
             </>
           )}
         </TouchableOpacity>

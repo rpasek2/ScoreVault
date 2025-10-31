@@ -9,10 +9,12 @@ import {
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AppearanceScreen() {
   const router = useRouter();
   const { themeMode, setThemeMode, theme } = useTheme();
+  const { t } = useLanguage();
 
   const handleThemeModeChange = (mode: ThemeMode) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -186,9 +188,9 @@ export default function AppearanceScreen() {
         contentContainerStyle={{ paddingBottom: theme.spacing.xxxl }}>
         {/* Theme Mode Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Theme Mode</Text>
+          <Text style={styles.sectionTitle}>{t('appearance.themeMode')}</Text>
           <Text style={styles.sectionDescription}>
-            Choose how ScoreVault looks on your device
+            {t('appearance.themeModeDescription')}
           </Text>
 
           <View style={styles.themeOptions}>
@@ -204,7 +206,7 @@ export default function AppearanceScreen() {
                 styles.themeLabel,
                 themeMode === 'light' && styles.themeLabelSelected
               ]}>
-                Light
+                {t('settings.lightMode')}
               </Text>
               {themeMode === 'light' && (
                 <View style={styles.checkmark}>
@@ -225,7 +227,7 @@ export default function AppearanceScreen() {
                 styles.themeLabel,
                 themeMode === 'dark' && styles.themeLabelSelected
               ]}>
-                Dark
+                {t('settings.darkMode')}
               </Text>
               {themeMode === 'dark' && (
                 <View style={styles.checkmark}>
@@ -246,7 +248,7 @@ export default function AppearanceScreen() {
                 styles.themeLabel,
                 themeMode === 'auto' && styles.themeLabelSelected
               ]}>
-                Auto
+                {t('appearance.auto')}
               </Text>
               {themeMode === 'auto' && (
                 <View style={styles.checkmark}>
@@ -260,9 +262,9 @@ export default function AppearanceScreen() {
 
         {/* Preview Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preview</Text>
+          <Text style={styles.sectionTitle}>{t('appearance.preview')}</Text>
           <Text style={styles.sectionDescription}>
-            See how your changes look
+            {t('appearance.previewDescription')}
           </Text>
 
           <View style={styles.previewCard}>
@@ -271,32 +273,32 @@ export default function AppearanceScreen() {
                 <Text style={styles.previewAvatarText}>GS</Text>
               </View>
               <View style={styles.previewInfo}>
-                <Text style={styles.previewName}>Gymnast Name</Text>
-                <Text style={styles.previewLevel}>Level 4</Text>
+                <Text style={styles.previewName}>{t('appearance.gymnastName')}</Text>
+                <Text style={styles.previewLevel}>{t('appearance.level4')}</Text>
               </View>
             </View>
 
             <View style={styles.previewScores}>
               <View style={styles.previewScore}>
-                <Text style={styles.previewScoreLabel}>Vault</Text>
+                <Text style={styles.previewScoreLabel}>{t('scores.vault')}</Text>
                 <Text style={styles.previewScoreValue}>9.2</Text>
               </View>
               <View style={styles.previewScore}>
-                <Text style={styles.previewScoreLabel}>Bars</Text>
+                <Text style={styles.previewScoreLabel}>{t('scores.bars')}</Text>
                 <Text style={styles.previewScoreValue}>8.8</Text>
               </View>
               <View style={styles.previewScore}>
-                <Text style={styles.previewScoreLabel}>Beam</Text>
+                <Text style={styles.previewScoreLabel}>{t('scores.beam')}</Text>
                 <Text style={styles.previewScoreValue}>9.0</Text>
               </View>
               <View style={styles.previewScore}>
-                <Text style={styles.previewScoreLabel}>Floor</Text>
+                <Text style={styles.previewScoreLabel}>{t('scores.floor')}</Text>
                 <Text style={styles.previewScoreValue}>9.4</Text>
               </View>
             </View>
 
             <View style={styles.previewButton}>
-              <Text style={styles.previewButtonText}>Sample Button</Text>
+              <Text style={styles.previewButtonText}>{t('appearance.sampleButton')}</Text>
             </View>
           </View>
         </View>
@@ -304,8 +306,7 @@ export default function AppearanceScreen() {
         {/* Info Section */}
         <View style={styles.infoSection}>
           <Text style={styles.infoText}>
-            💡 Theme changes take effect immediately throughout the app.{'\n\n'}
-            Note: The login screen always uses light mode for optimal visibility.
+            {t('appearance.themeChangeNote')}
           </Text>
         </View>
       </ScrollView>

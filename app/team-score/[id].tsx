@@ -6,14 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  useWindowDimensions
+  useWindowDimensions,
+  Modal,
+  TextInput,
+  Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CARD_SHADOW, getCardBorder } from '@/constants/theme';
-import { getGymnasts, getMeets, getScores } from '@/utils/database';
+import { getGymnasts, getMeets, getScores, saveTeamPlacement, getTeamPlacement } from '@/utils/database';
 import {
   calculateTeamScore,
   formatTeamScore,
@@ -31,6 +35,7 @@ interface GymnastWithScore {
 
 export default function TeamScoreCardScreen() {
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const params = useLocalSearchParams();
   const level = params.level as string;
@@ -51,6 +56,18 @@ export default function TeamScoreCardScreen() {
   const [gymnastsWithScores, setGymnastsWithScores] = useState<GymnastWithScore[]>([]);
   const [teamScoreResult, setTeamScoreResult] = useState<any>(null);
   const [countingScoreCount, setCountingScoreCount] = useState<3 | 5>(3);
+  const [placementsModalVisible, setPlacementsModalVisible] = useState(false);
+  const [placements, setPlacements] = useState<{
+    vault?: string;
+    bars?: string;
+    beam?: string;
+    floor?: string;
+    pommelHorse?: string;
+    rings?: string;
+    parallelBars?: string;
+    highBar?: string;
+    allAround?: string;
+  }>({});
 
   const fetchData = async () => {
     try {
@@ -87,6 +104,22 @@ export default function TeamScoreCardScreen() {
         });
 
       setGymnastsWithScores(gymnastsWithScoresData);
+
+      // Load existing team placements
+      const existingPlacements = await getTeamPlacement(meetId, level, discipline);
+      if (existingPlacements) {
+        setPlacements({
+          vault: existingPlacements.placements.vault?.toString() || '',
+          bars: existingPlacements.placements.bars?.toString() || '',
+          beam: existingPlacements.placements.beam?.toString() || '',
+          floor: existingPlacements.placements.floor?.toString() || '',
+          pommelHorse: existingPlacements.placements.pommelHorse?.toString() || '',
+          rings: existingPlacements.placements.rings?.toString() || '',
+          parallelBars: existingPlacements.placements.parallelBars?.toString() || '',
+          highBar: existingPlacements.placements.highBar?.toString() || '',
+          allAround: existingPlacements.placements.allAround?.toString() || ''
+        });
+      }
 
       setLoading(false);
     } catch (error) {
@@ -131,6 +164,51 @@ export default function TeamScoreCardScreen() {
       pathname: '/edit-score',
       params: { gymnastId, meetId }
     });
+  };
+
+  const handleCreateSocialCard = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push({
+      pathname: '/team-score-card-creator',
+      params: {
+        level,
+        discipline,
+        meetId,
+        countingScoreCount: countingScoreCount.toString()
+      }
+    });
+  };
+
+  const handleOpenPlacementsModal = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPlacementsModalVisible(true);
+  };
+
+  const handleSavePlacements = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      const placementsData: any = {};
+      if (placements.vault) placementsData.vault = parseInt(placements.vault);
+      if (placements.bars) placementsData.bars = parseInt(placements.bars);
+      if (placements.beam) placementsData.beam = parseInt(placements.beam);
+      if (placements.floor) placementsData.floor = parseInt(placements.floor);
+      if (placements.pommelHorse) placementsData.pommelHorse = parseInt(placements.pommelHorse);
+      if (placements.rings) placementsData.rings = parseInt(placements.rings);
+      if (placements.parallelBars) placementsData.parallelBars = parseInt(placements.parallelBars);
+      if (placements.highBar) placementsData.highBar = parseInt(placements.highBar);
+      if (placements.allAround) placementsData.allAround = parseInt(placements.allAround);
+
+      await saveTeamPlacement(meetId, level, discipline, placementsData);
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(t('common.success'), t('teams.placementsSaved'));
+      setPlacementsModalVisible(false);
+    } catch (error) {
+      console.error('Error saving placements:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(t('common.error'), t('teams.failedToSavePlacements'));
+    }
   };
 
   const events = discipline === 'Womens' ? WOMENS_EVENTS : MENS_EVENTS;
@@ -396,6 +474,149 @@ export default function TeamScoreCardScreen() {
     },
     toggleButtonTextActive: {
       color: '#FFFFFF'
+    },
+    actionButtonsContainer: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.md
+    },
+    actionButton: {
+      flex: 1,
+      borderRadius: 16,
+      overflow: 'hidden'
+    },
+    socialCardButton: {
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+      ...CARD_SHADOW
+    },
+    socialCardGradient: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.spacing.base,
+      gap: theme.spacing.sm
+    },
+    socialCardIcon: {
+      fontSize: 20
+    },
+    socialCardButtonText: {
+      ...theme.typography.button,
+      color: '#FFFFFF',
+      fontWeight: '600'
+    },
+    placementsButton: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+      ...CARD_SHADOW
+    },
+    placementsButtonInner: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.spacing.base,
+      gap: theme.spacing.sm
+    },
+    placementsButtonIcon: {
+      fontSize: 20
+    },
+    placementsButtonText: {
+      ...theme.typography.button,
+      color: theme.colors.primary,
+      fontWeight: '600'
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.spacing.lg
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.xl,
+      padding: theme.spacing.xl,
+      width: '100%',
+      maxWidth: 500,
+      maxHeight: '80%',
+      ...theme.shadows.large
+    },
+    modalTitle: {
+      ...theme.typography.h4,
+      color: theme.colors.textPrimary,
+      fontWeight: '700',
+      marginBottom: theme.spacing.xs
+    },
+    modalSubtitle: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textSecondary,
+      marginBottom: theme.spacing.lg
+    },
+    modalScroll: {
+      maxHeight: 400
+    },
+    placementInputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing.md,
+      gap: theme.spacing.md
+    },
+    placementLabel: {
+      ...theme.typography.body,
+      color: theme.colors.textPrimary,
+      flex: 1
+    },
+    placementLabelBold: {
+      fontWeight: '700'
+    },
+    placementInput: {
+      ...theme.typography.body,
+      color: theme.colors.textPrimary,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.sm,
+      width: 80,
+      textAlign: 'center'
+    },
+    placementInputBold: {
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+      fontWeight: '700'
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      marginTop: theme.spacing.lg
+    },
+    modalButton: {
+      flex: 1,
+      padding: theme.spacing.base,
+      borderRadius: theme.borderRadius.lg,
+      alignItems: 'center'
+    },
+    modalButtonCancel: {
+      backgroundColor: theme.colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: theme.colors.border
+    },
+    modalButtonSave: {
+      backgroundColor: theme.colors.primary
+    },
+    modalButtonTextCancel: {
+      ...theme.typography.button,
+      color: theme.colors.textPrimary,
+      fontWeight: '600'
+    },
+    modalButtonTextSave: {
+      ...theme.typography.button,
+      color: '#FFFFFF',
+      fontWeight: '600'
     }
   });
 
@@ -413,22 +634,25 @@ export default function TeamScoreCardScreen() {
         <LinearGradient
           colors={theme.colors.headerGradient}
           style={styles.header}>
-          <Text style={styles.headerTitle}>{meet?.name || 'Team Scores'}</Text>
+          <Text style={styles.headerTitle}>{meet?.name || t('teams.teamScores')}</Text>
           <Text style={styles.headerSubtitle}>
-            {level} - {discipline === 'Womens' ? "Women's" : "Men's"}
+            {level} - {discipline === 'Womens' ? t('gymnasts.womens') : t('gymnasts.mens')}
           </Text>
         </LinearGradient>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No Scores Yet</Text>
+          <Text style={styles.emptyText}>{t('teams.noScoresYet')}</Text>
           <Text style={styles.emptySubtext}>
-            No gymnasts from {level} - {discipline === 'Womens' ? "Women's" : "Men's"} competed at this meet
+            {t('teams.noGymnastsCompetedAt', {
+              level,
+              discipline: discipline === 'Womens' ? t('gymnasts.womens') : t('gymnasts.mens')
+            })}
           </Text>
         </View>
       </View>
     );
   }
 
-  const disciplineDisplay = discipline === 'Womens' ? "Women's" : "Men's";
+  const disciplineDisplay = discipline === 'Womens' ? t('gymnasts.womens') : t('gymnasts.mens');
 
   return (
     <View style={styles.container}>
@@ -456,7 +680,7 @@ export default function TeamScoreCardScreen() {
                 styles.toggleButtonText,
                 countingScoreCount === 3 && styles.toggleButtonTextActive
               ]}>
-                Top 3 Scores
+                {t('teams.top3Scores')}
               </Text>
             </TouchableOpacity>
 
@@ -471,7 +695,7 @@ export default function TeamScoreCardScreen() {
                 styles.toggleButtonText,
                 countingScoreCount === 5 && styles.toggleButtonTextActive
               ]}>
-                Top 5 Scores
+                {t('teams.top5Scores')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -483,7 +707,7 @@ export default function TeamScoreCardScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.teamSummaryCard}>
-          <Text style={styles.teamScoreLabel}>Team Score</Text>
+          <Text style={styles.teamScoreLabel}>{t('teams.teamScore')}</Text>
           <Text style={styles.teamScoreValue}>
             {formatTeamScore(teamScoreResult.totalScore)}
           </Text>
@@ -500,8 +724,34 @@ export default function TeamScoreCardScreen() {
           </View>
         </LinearGradient>
 
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.socialCardButton]}
+            onPress={handleCreateSocialCard}
+            activeOpacity={0.7}>
+            <LinearGradient
+              colors={theme.colors.avatarGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.socialCardGradient}>
+              <Text style={styles.socialCardButtonText}>{t('scoreCard.createSocialCard')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.placementsButton]}
+            onPress={handleOpenPlacementsModal}
+            activeOpacity={0.7}>
+            <View style={styles.placementsButtonInner}>
+              <Text style={styles.placementsButtonIcon}>🏆</Text>
+              <Text style={styles.placementsButtonText}>{t('teams.teamPlacements')}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Score Grid */}
-        <Text style={styles.sectionTitle}>Gymnast Scores</Text>
+        <Text style={styles.sectionTitle}>{t('teams.gymnastScores')}</Text>
         <LinearGradient
           colors={theme.colors.cardGradient}
           start={{ x: 0, y: 0 }}
@@ -514,7 +764,7 @@ export default function TeamScoreCardScreen() {
                 {/* Header */}
                 <View style={styles.gridHeader}>
                   <View style={[styles.gridHeaderCell, styles.nameColumn]}>
-                    <Text style={styles.gridHeaderText}>Gymnast</Text>
+                    <Text style={styles.gridHeaderText}>{t('scores.gymnast')}</Text>
                   </View>
                 </View>
                 {/* Data Rows */}
@@ -551,7 +801,7 @@ export default function TeamScoreCardScreen() {
                       </View>
                     ))}
                     <View style={[styles.gridHeaderCell, styles.scoreColumn, styles.gridHeaderCellLast]}>
-                      <Text style={styles.gridHeaderText}>AA</Text>
+                      <Text style={styles.gridHeaderText}>{t('teams.aa')}</Text>
                     </View>
                   </View>
 
@@ -592,6 +842,65 @@ export default function TeamScoreCardScreen() {
           </View>
         </LinearGradient>
       </ScrollView>
+
+      {/* Placements Modal */}
+      <Modal
+        visible={placementsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPlacementsModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t('teams.teamPlacements')}</Text>
+            <Text style={styles.modalSubtitle}>{t('teams.enterTeamPlacements')}</Text>
+
+            <ScrollView style={styles.modalScroll}>
+              {events.map((event) => (
+                <View key={event} style={styles.placementInputRow}>
+                  <Text style={styles.placementLabel}>{getEventDisplayName(event)}</Text>
+                  <TextInput
+                    style={styles.placementInput}
+                    placeholder={t('teams.place')}
+                    placeholderTextColor={theme.colors.textTertiary}
+                    keyboardType="number-pad"
+                    value={placements[event as keyof typeof placements] || ''}
+                    onChangeText={(text) => setPlacements(prev => ({ ...prev, [event]: text }))}
+                  />
+                </View>
+              ))}
+
+              {/* All-Around */}
+              <View style={styles.placementInputRow}>
+                <Text style={[styles.placementLabel, styles.placementLabelBold]}>{t('scores.allAround')}</Text>
+                <TextInput
+                  style={[styles.placementInput, styles.placementInputBold]}
+                  placeholder={t('teams.place')}
+                  placeholderTextColor={theme.colors.textTertiary}
+                  keyboardType="number-pad"
+                  value={placements.allAround || ''}
+                  onChangeText={(text) => setPlacements(prev => ({ ...prev, allAround: text }))}
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setPlacementsModalVisible(false)}
+                activeOpacity={0.7}>
+                <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={handleSavePlacements}
+                activeOpacity={0.7}>
+                <Text style={styles.modalButtonTextSave}>{t('common.save')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

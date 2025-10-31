@@ -14,6 +14,7 @@ import {
 import { useRouter, useLocalSearchParams, useNavigation, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Meet, Score, Gymnast } from '@/types';
 import { formatDate, formatScore } from '@/utils/seasonUtils';
 import FloatingActionButton from '@/components/FloatingActionButton';
@@ -58,6 +59,7 @@ export default function MeetDetailScreen() {
   const [teamCountingCounts, setTeamCountingCounts] = useState<{ [key: string]: 3 | 5 }>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const navigation = useNavigation();
   const { width: screenWidth } = useWindowDimensions();
@@ -216,12 +218,12 @@ export default function MeetDetailScreen() {
         setLoading(false);
         setRefreshing(false);
       } else {
-        Alert.alert('Error', 'Meet not found');
+        Alert.alert(t('common.error'), t('meets.meetNotFound'));
         router.back();
       }
     } catch (error) {
       console.error('Error fetching meet:', error);
-      Alert.alert('Error', 'Failed to load meet');
+      Alert.alert(t('common.error'), t('meets.failedToLoadMeet'));
       setLoading(false);
       setRefreshing(false);
     }
@@ -723,7 +725,7 @@ export default function MeetDetailScreen() {
           }}
           activeOpacity={0.7}>
           <Text style={[styles.segmentButtonText, selectedTab === 'gymnasts' && styles.segmentButtonTextActive]}>
-            Gymnasts
+            {t('tabs.gymnasts')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -734,7 +736,7 @@ export default function MeetDetailScreen() {
           }}
           activeOpacity={0.7}>
           <Text style={[styles.segmentButtonText, selectedTab === 'teams' && styles.segmentButtonTextActive]}>
-            Teams
+            {t('tabs.teams')}
           </Text>
         </TouchableOpacity>
       </View>

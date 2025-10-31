@@ -5,9 +5,11 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ContactSupportScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -18,25 +20,25 @@ export default function ContactSupportScreen() {
   const handleSendEmail = async () => {
     if (!subject.trim() || !message.trim()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Please fill in both subject and message');
+      Alert.alert(t('common.error'), t('contact.fillBothFields'));
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const userEmail = user?.email || 'No email';
+    const userEmail = user?.email || t('settings.noEmail');
     const emailBody = `
-Message from ScoreVault App
+${t('contact.messageFrom')}
 ---------------------------
-From: ${userEmail}
-Subject: ${subject}
+${t('contact.from')}: ${userEmail}
+${t('contact.subject')}: ${subject}
 
-Message:
+${t('contact.message')}:
 ${message}
 
 ---------------------------
-Device Info:
-User ID: ${user?.uid || 'Unknown'}
+${t('contact.deviceInfo')}:
+${t('contact.userId')}: ${user?.uid || t('contact.unknown')}
     `.trim();
 
     const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
@@ -52,8 +54,8 @@ User ID: ${user?.uid || 'Unknown'}
         setMessage('');
 
         Alert.alert(
-          'Email Client Opened',
-          'Your email client has been opened. Please send the email to submit your support request.'
+          t('contact.emailClientOpened'),
+          t('contact.emailClientOpenedMessage')
         );
       } else {
         throw new Error('Cannot open email client');
@@ -61,8 +63,8 @@ User ID: ${user?.uid || 'Unknown'}
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
-        'Email Not Available',
-        `Please email us directly at ${SUPPORT_EMAIL}\n\nSubject: ${subject}\n\nMessage: ${message}`
+        t('contact.emailNotAvailable'),
+        t('contact.emailNotAvailableMessage', { email: SUPPORT_EMAIL, subject, message })
       );
     }
   };
@@ -70,7 +72,7 @@ User ID: ${user?.uid || 'Unknown'}
   const openFAQ = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Navigate to help screen - assuming it exists
-    Alert.alert('Help & FAQ', 'Check the Help & FAQ section in Settings for common questions');
+    Alert.alert(t('contact.helpFAQ'), t('contact.checkHelpFAQ'));
   };
 
   const styles = StyleSheet.create({
@@ -198,9 +200,9 @@ User ID: ${user?.uid || 'Unknown'}
           colors={theme.colors.headerGradient}
           style={styles.header}>
           <Text style={styles.headerIcon}>📧</Text>
-          <Text style={styles.title}>Contact Support</Text>
+          <Text style={styles.title}>{t('settings.contactSupport')}</Text>
           <Text style={styles.subtitle}>
-            We're here to help! Send us a message
+            {t('contact.subtitle')}
           </Text>
         </LinearGradient>
 
@@ -210,23 +212,23 @@ User ID: ${user?.uid || 'Unknown'}
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.card}>
-              <Text style={styles.label}>Your Email</Text>
-              <Text style={styles.userInfo}>{user?.email || 'Not available'}</Text>
+              <Text style={styles.label}>{t('contact.yourEmail')}</Text>
+              <Text style={styles.userInfo}>{user?.email || t('contact.notAvailable')}</Text>
 
-              <Text style={styles.label}>Subject</Text>
+              <Text style={styles.label}>{t('contact.subject')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Brief description of your issue"
+                placeholder={t('contact.subjectPlaceholder')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={subject}
                 onChangeText={setSubject}
                 editable={!loading}
               />
 
-              <Text style={styles.label}>Message</Text>
+              <Text style={styles.label}>{t('contact.message')}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Please describe your issue or question in detail..."
+                placeholder={t('contact.messagePlaceholder')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={message}
                 onChangeText={setMessage}
@@ -245,7 +247,7 @@ User ID: ${user?.uid || 'Unknown'}
                     styles.button,
                     (loading || !subject.trim() || !message.trim()) && styles.buttonDisabled
                   ]}>
-                  <Text style={styles.buttonText}>Send Message</Text>
+                  <Text style={styles.buttonText}>{t('contact.sendMessage')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>
@@ -256,18 +258,18 @@ User ID: ${user?.uid || 'Unknown'}
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Before You Contact Us</Text>
+              <Text style={styles.infoTitle}>{t('contact.beforeYouContact')}</Text>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Check our Help & FAQ section for quick answers</Text>
+                <Text style={styles.infoText}>{t('contact.checkHelpFAQSection')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Include detailed steps to reproduce any issues</Text>
+                <Text style={styles.infoText}>{t('contact.includeDetailedSteps')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Screenshots are helpful for visual issues</Text>
+                <Text style={styles.infoText}>{t('contact.screenshotsHelpful')}</Text>
               </View>
 
               <TouchableOpacity
@@ -276,7 +278,7 @@ User ID: ${user?.uid || 'Unknown'}
                 <LinearGradient
                   colors={theme.colors.cardGradient}
                   style={styles.linkButton}>
-                  <Text style={styles.linkButtonText}>View Help & FAQ</Text>
+                  <Text style={styles.linkButtonText}>{t('contact.viewHelpFAQ')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>
@@ -287,9 +289,9 @@ User ID: ${user?.uid || 'Unknown'}
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Direct Contact</Text>
+              <Text style={styles.infoTitle}>{t('contact.directContact')}</Text>
               <Text style={styles.infoText}>
-                You can also email us directly at:
+                {t('contact.emailDirectly')}
               </Text>
               <Text style={[styles.infoText, { color: theme.colors.primary, fontWeight: '600', marginTop: theme.spacing.sm }]}>
                 {SUPPORT_EMAIL}

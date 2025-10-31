@@ -1,5 +1,6 @@
 import FloatingActionButton from '@/components/FloatingActionButton';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Meet, Timestamp } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -25,6 +26,7 @@ export default function MeetsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const fetchMeets = async () => {
@@ -359,12 +361,12 @@ export default function MeetsScreen() {
             <Text style={styles.emptyIcon}>📅</Text>
           </LinearGradient>
           <Text style={styles.emptyText}>
-            {allMeets.length === 0 ? 'No Meets Scheduled' : `No Meets for ${selectedSeason}`}
+            {allMeets.length === 0 ? t('meets.noMeets') : `${t('meets.noMeets')} ${selectedSeason}`}
           </Text>
           <Text style={styles.emptySubtext}>
             {allMeets.length === 0
-              ? 'Add your first meet to start tracking competition scores'
-              : 'Try selecting a different season or add a new meet'
+              ? t('meets.noMeetsSubtext')
+              : t('meets.noMeetsSubtext')
             }
           </Text>
         </View>
@@ -414,7 +416,7 @@ export default function MeetsScreen() {
                     <Text style={styles.meetName}>{item.name}</Text>
                     {upcoming && (
                       <View style={styles.upcomingBadge}>
-                        <Text style={styles.upcomingText}>UPCOMING</Text>
+                        <Text style={styles.upcomingText}>{t('meets.upcoming')}</Text>
                       </View>
                     )}
                   </View>

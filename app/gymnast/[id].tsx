@@ -1,5 +1,6 @@
 ﻿import { CARD_SHADOW, EVENT_LABELS, EventKey, getAAScoreColor, getInitials, getOrdinal, getPlacementColor, getScoreColor, MENS_EVENTS, SOFT_SHADOW, WOMENS_EVENTS, getCardBorder } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Gymnast, Meet, Score, Timestamp } from '@/types';
 import { formatDate, formatScore } from '@/utils/seasonUtils';
 import * as Haptics from 'expo-haptics';
@@ -11,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -55,6 +57,7 @@ export default function GymnastProfileScreen() {
   const [selectedEvent, setSelectedEvent] = useState<EventKey | 'allAround'>('allAround');
   const [showAllLevels, setShowAllLevels] = useState(false);
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -81,10 +84,10 @@ export default function GymnastProfileScreen() {
           const meet = meetsMap[score.meetId];
           return {
             ...score,
-            meetName: meet?.name || 'Unknown Meet',
+            meetName: meet?.name || t('meets.unknownMeet'),
             meetDate: meet?.date || { toMillis: () => 0, toDate: () => new Date() } as Timestamp
           };
-        }).filter(score => score.meetName !== 'Unknown Meet');
+        }).filter(score => score.meetName !== t('meets.unknownMeet'));
 
         // Sort by date (most recent first)
         scoresList.sort((a, b) => {
@@ -95,12 +98,12 @@ export default function GymnastProfileScreen() {
 
         setScores(scoresList);
       } else {
-        Alert.alert('Error', 'Gymnast not found');
+        Alert.alert(t('common.error'), t('gymnasts.gymnastNotFound'));
         router.back();
       }
     } catch (error) {
       console.error('Error fetching gymnast:', error);
-      Alert.alert('Error', 'Failed to load gymnast profile');
+      Alert.alert(t('common.error'), t('gymnasts.failedToLoadProfile'));
     } finally {
       setLoading(false);
     }
@@ -201,6 +204,12 @@ export default function GymnastProfileScreen() {
     marginBottom: theme.spacing.md,
     ...SOFT_SHADOW
   },
+  avatarLargeImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    marginBottom: theme.spacing.md
+  },
   avatarLargeText: {
     ...theme.typography.h1,
     color: theme.colors.surface,
@@ -221,6 +230,13 @@ export default function GymnastProfileScreen() {
     ...theme.typography.bodySmall,
     color: theme.colors.textPrimary,
     fontWeight: '600'
+  },
+  levelTip: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+    opacity: 0.7,
+    fontStyle: 'italic'
   },
   statsContainer: {
     flexDirection: 'row',
@@ -423,16 +439,29 @@ export default function GymnastProfileScreen() {
     flex: 1
   },
   shareButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(107, 110, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: theme.spacing.sm
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginLeft: theme.spacing.sm,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    ...CARD_SHADOW
   },
-  shareButtonText: {
-    fontSize: 18
+  shareButtonGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.base,
+    gap: 6
+  },
+  shareButtonIcon: {
+    fontSize: 16
+  },
+  shareButtonLabel: {
+    ...theme.typography.button,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 12
   },
   meetName: {
     ...theme.typography.h5,
@@ -681,16 +710,16 @@ export default function GymnastProfileScreen() {
   const handleHideGymnast = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Hide Gymnast',
-      `Hide "${gymnast?.name}"? They will be removed from the active roster but all their scores will remain. You can unhide them from Settings.`,
+      t('gymnasts.hideGymnast'),
+      t('gymnasts.hideGymnastConfirm', { name: gymnast?.name }),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Hide',
+          text: t('gymnasts.hide'),
           style: 'default',
           onPress: async () => {
             try {
@@ -699,7 +728,7 @@ export default function GymnastProfileScreen() {
               router.back();
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Error', error.message || 'Failed to hide gymnast');
+              Alert.alert(t('common.error'), error.message || t('gymnasts.failedToHide'));
             }
           }
         }
@@ -710,16 +739,16 @@ export default function GymnastProfileScreen() {
   const handleDeleteGymnast = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Delete Gymnast',
-      `Are you sure you want to delete "${gymnast?.name}"? This will also delete all ${scores.length} score(s) for this gymnast.`,
+      t('gymnasts.deleteGymnast'),
+      t('gymnasts.deleteGymnastConfirm', { name: gymnast?.name, count: scores.length }),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -732,7 +761,7 @@ export default function GymnastProfileScreen() {
               router.back();
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Error', error.message || 'Failed to delete gymnast');
+              Alert.alert(t('common.error'), error.message || t('gymnasts.failedToDelete'));
             }
           }
         }
@@ -765,7 +794,7 @@ export default function GymnastProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error.message || 'Failed to update level');
+      Alert.alert(t('common.error'), error.message || t('gymnasts.failedToUpdateLevel'));
     }
   };
 
@@ -834,21 +863,28 @@ export default function GymnastProfileScreen() {
           <Text style={styles.editButtonTextGymnast}>✏️</Text>
         </TouchableOpacity>
 
-        <LinearGradient
-          colors={theme.colors.avatarGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.avatarLarge}>
-          <Text style={styles.avatarLargeText}>{getInitials(gymnast.name)}</Text>
-        </LinearGradient>
+        {gymnast.photoUri ? (
+          <Image source={{ uri: gymnast.photoUri }} style={styles.avatarLargeImage} />
+        ) : (
+          <LinearGradient
+            colors={theme.colors.avatarGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatarLarge}>
+            <Text style={styles.avatarLargeText}>{getInitials(gymnast.name)}</Text>
+          </LinearGradient>
+        )}
         <Text style={styles.gymnastName}>{gymnast.name}</Text>
         {gymnast.level && (
-          <TouchableOpacity
-            style={styles.levelBadge}
-            onPress={handleLevelPress}
-            activeOpacity={0.7}>
-            <Text style={styles.levelText}>{gymnast.level}</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.levelBadge}
+              onPress={handleLevelPress}
+              activeOpacity={0.7}>
+              <Text style={styles.levelText}>{gymnast.level}</Text>
+            </TouchableOpacity>
+            <Text style={styles.levelTip}>{t('gymnasts.tapLevelToChange')}</Text>
+          </>
         )}
       </LinearGradient>
 
@@ -864,9 +900,9 @@ export default function GymnastProfileScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Change Level</Text>
+            <Text style={styles.modalTitle}>{t('gymnasts.changeLevel')}</Text>
             <Text style={styles.modalSubtitle}>
-              Past scores will keep their original level tag. New scores will use the updated level.
+              {t('gymnasts.changeLevelNote')}
             </Text>
 
             <View style={styles.modalLevelGrid}>
@@ -894,13 +930,13 @@ export default function GymnastProfileScreen() {
                 style={styles.modalCancelButton}
                 onPress={() => setShowLevelModal(false)}
                 activeOpacity={0.7}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalSaveButton}
                 onPress={handleSaveLevel}
                 activeOpacity={0.7}>
-                <Text style={styles.modalSaveText}>Save</Text>
+                <Text style={styles.modalSaveText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </LinearGradient>
@@ -917,7 +953,7 @@ export default function GymnastProfileScreen() {
           <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
             {totalScores}
           </Text>
-          <Text style={styles.statLabel}>Meets</Text>
+          <Text style={styles.statLabel}>{t('gymnasts.meets')}</Text>
         </LinearGradient>
         <LinearGradient
           colors={theme.colors.statGradients[1]}
@@ -931,7 +967,7 @@ export default function GymnastProfileScreen() {
             minimumFontScale={0.5}>
             {avgAllAround > 0 ? formatScore(avgAllAround) : '-'}
           </Text>
-          <Text style={styles.statLabel}>Average AA</Text>
+          <Text style={styles.statLabel}>{t('gymnasts.averageAA')}</Text>
         </LinearGradient>
         <LinearGradient
           colors={theme.colors.statGradients[2]}
@@ -945,13 +981,13 @@ export default function GymnastProfileScreen() {
             minimumFontScale={0.5}>
             {bestScore > 0 ? formatScore(bestScore) : '-'}
           </Text>
-          <Text style={styles.statLabel}>Best Score</Text>
+          <Text style={styles.statLabel}>{t('gymnasts.bestScore')}</Text>
         </LinearGradient>
       </View>
 
       {/* Level Filter */}
       <View style={styles.levelFilterContainer}>
-        <Text style={styles.levelFilterButtonText}>Show:</Text>
+        <Text style={styles.levelFilterButtonText}>{t('gymnasts.show')}:</Text>
         <TouchableOpacity
           style={[styles.levelFilterButton, !showAllLevels && styles.levelFilterButtonActive]}
           onPress={() => {
@@ -960,7 +996,7 @@ export default function GymnastProfileScreen() {
           }}
           activeOpacity={0.7}>
           <Text style={[styles.levelFilterButtonText, !showAllLevels && styles.levelFilterButtonTextActive]}>
-            {gymnast.level || 'Current Level'}
+            {gymnast.level || t('gymnasts.currentLevel')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -971,7 +1007,7 @@ export default function GymnastProfileScreen() {
           }}
           activeOpacity={0.7}>
           <Text style={[styles.levelFilterButtonText, showAllLevels && styles.levelFilterButtonTextActive]}>
-            All Levels
+            {t('gymnasts.allLevels')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -983,7 +1019,7 @@ export default function GymnastProfileScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.analyticsSection}>
-          <Text style={styles.sectionTitle}>Performance Analytics</Text>
+          <Text style={styles.sectionTitle}>{t('gymnasts.performanceAnalytics')}</Text>
 
           {/* Score Progress Chart */}
           {filteredScores.length >= 2 && (
@@ -1025,7 +1061,7 @@ export default function GymnastProfileScreen() {
                 }}
               />
               <Text style={styles.chartLabel}>
-                {selectedEvent === 'allAround' ? 'All-Around' : EVENT_LABELS[selectedEvent as EventKey]} Score Trend (Last 8 Meets)
+                {selectedEvent === 'allAround' ? t('scores.allAround') : EVENT_LABELS[selectedEvent as EventKey]} {t('gymnasts.scoreTrend')}
               </Text>
             </View>
           )}
@@ -1053,7 +1089,7 @@ export default function GymnastProfileScreen() {
                   numberOfLines={2}
                   adjustsFontSizeToFit
                   minimumFontScale={0.7}>
-                  {EVENT_LABELS[event]} AVG
+                  {EVENT_LABELS[event]} {t('gymnasts.avg')}
                 </Text>
                 <Text style={[styles.eventAvgValue, selectedEvent === event && styles.eventAvgValueSelected]}>
                   {formatScore(eventAverages[event])}
@@ -1074,7 +1110,7 @@ export default function GymnastProfileScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             activeOpacity={0.7}>
-            <Text style={styles.eventAvgLabel}>All-Around AVG</Text>
+            <Text style={styles.eventAvgLabel}>{t('scores.allAround')} {t('gymnasts.avg')}</Text>
             <Text style={[styles.eventAvgValue, selectedEvent === 'allAround' && styles.eventAvgValueSelected]}>
               {formatScore(avgAllAround)}
             </Text>
@@ -1082,7 +1118,7 @@ export default function GymnastProfileScreen() {
 
           {/* Personal Records */}
           <View style={styles.personalRecords}>
-          <Text style={styles.prTitle}>Personal Records</Text>
+          <Text style={styles.prTitle}>{t('gymnasts.personalRecords')}</Text>
             <View style={styles.prGrid}>
               {currentEvents.map(event => (
                 <View key={event} style={styles.prItem}>
@@ -1091,7 +1127,7 @@ export default function GymnastProfileScreen() {
                 </View>
               ))}
               <View style={styles.prItemFull}>
-                <Text style={styles.prEvent}>All-Around</Text>
+                <Text style={styles.prEvent}>{t('scores.allAround')}</Text>
                 <Text style={[styles.prScore, styles.prScoreLarge]}>
                   {formatScore(personalRecords.allAround)}
                 </Text>
@@ -1103,7 +1139,7 @@ export default function GymnastProfileScreen() {
 
       {/* Scores Section */}
       <View style={styles.scoresSection}>
-        <Text style={styles.sectionTitle}>Competition Scores</Text>
+        <Text style={styles.sectionTitle}>{t('gymnasts.competitionScores')}</Text>
 
         {filteredScores.length === 0 ? (
           <View style={styles.emptyScores}>
@@ -1114,9 +1150,9 @@ export default function GymnastProfileScreen() {
               style={styles.emptyIconContainer}>
               <Text style={styles.emptyIcon}>★</Text>
             </LinearGradient>
-            <Text style={styles.emptyText}>No Scores Yet</Text>
+            <Text style={styles.emptyText}>{t('gymnasts.noScoresYet')}</Text>
             <Text style={styles.emptySubtext}>
-              Scores will appear here after meets
+              {t('gymnasts.scoresWillAppear')}
             </Text>
           </View>
         ) : (
@@ -1155,7 +1191,13 @@ export default function GymnastProfileScreen() {
                       onPress={(e) => handleShareScore(score.id, e)}
                       style={styles.shareButton}
                       activeOpacity={0.7}>
-                      <Text style={styles.shareButtonText}>📤</Text>
+                      <LinearGradient
+                        colors={theme.colors.avatarGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.shareButtonGradient}>
+                        <Text style={styles.shareButtonLabel}>{t('scoreCard.createSocialCard')}</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </View>
 
@@ -1202,7 +1244,7 @@ export default function GymnastProfileScreen() {
                     { backgroundColor: getAAScoreColor(score.scores.allAround, theme) + '15' }
                   ]}>
                     <View style={styles.allAroundContent}>
-                      <Text style={styles.allAroundLabel}>All-Around</Text>
+                      <Text style={styles.allAroundLabel}>{t('scores.allAround')}</Text>
                       <Text style={[styles.allAroundValue, { color: getAAScoreColor(score.scores.allAround, theme) }]}>
                         {formatScore(score.scores.allAround)}
                       </Text>

@@ -14,6 +14,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CARD_SHADOW, EVENT_LABELS, EventKey, getCardBorder } from '@/constants/theme';
 import { getGymnasts, getMeets, getScores } from '@/utils/database';
 import {
@@ -41,6 +42,7 @@ interface MeetWithTeamScore {
 
 export default function LevelMeetsScreen() {
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const params = useLocalSearchParams();
   const level = params.level as string;
@@ -440,7 +442,7 @@ export default function LevelMeetsScreen() {
     );
   }
 
-  const disciplineDisplay = discipline === 'Womens' ? "Women's" : "Men's";
+  const disciplineDisplay = discipline === 'Womens' ? t('gymnasts.womens') : t('gymnasts.mens');
   const events = discipline === 'Womens' ? WOMENS_EVENTS : MENS_EVENTS;
 
   // Helper function to check if a meet has enough competitors for an event
@@ -497,7 +499,7 @@ export default function LevelMeetsScreen() {
         colors={theme.colors.headerGradient}
         style={styles.header}>
         <Text style={styles.headerTitle}>{level} - {disciplineDisplay}</Text>
-        <Text style={styles.headerSubtitle}>Team Scores by Meet</Text>
+        <Text style={styles.headerSubtitle}>{t('teams.teamScoresByMeet')}</Text>
       </LinearGradient>
 
       {meetsWithScores.length === 0 ? (
@@ -509,9 +511,9 @@ export default function LevelMeetsScreen() {
             style={styles.emptyIconContainer}>
             <Text style={styles.emptyIcon}>📅</Text>
           </LinearGradient>
-          <Text style={styles.emptyText}>No Meets Yet</Text>
+          <Text style={styles.emptyText}>{t('teams.noMeetsYet')}</Text>
           <Text style={styles.emptySubtext}>
-            No meets with scores found for {level} - {disciplineDisplay}
+            {t('teams.noMeetsWithScoresFound', { level, discipline: disciplineDisplay })}
           </Text>
         </View>
       ) : (
@@ -533,7 +535,7 @@ export default function LevelMeetsScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.analyticsSection}>
-          <Text style={styles.sectionTitleAnalytics}>Team Performance Analytics</Text>
+          <Text style={styles.sectionTitleAnalytics}>{t('teams.performanceAnalytics')}</Text>
 
           {/* Score Progress Chart */}
           {((selectedEvent === 'allAround' && fullTeamMeets.length >= 2) ||
@@ -580,7 +582,7 @@ export default function LevelMeetsScreen() {
                 }}
               />
               <Text style={styles.chartLabel}>
-                {selectedEvent === 'allAround' ? 'Team Total' : EVENT_LABELS[selectedEvent as EventKey]} Score Trend (Last 8 Meets)
+                {selectedEvent === 'allAround' ? t('teams.teamTotal') : EVENT_LABELS[selectedEvent as EventKey]} {t('teams.scoreTrend')}
               </Text>
             </View>
           )}
@@ -608,7 +610,7 @@ export default function LevelMeetsScreen() {
                   numberOfLines={2}
                   adjustsFontSizeToFit
                   minimumFontScale={0.7}>
-                  {EVENT_LABELS[event]} AVG
+                  {EVENT_LABELS[event]} {t('teams.avg')}
                 </Text>
                 <Text style={[styles.eventAvgValue, selectedEvent === event && styles.eventAvgValueSelected]}>
                   {formatTeamScore(eventAverages[event])}
@@ -629,7 +631,7 @@ export default function LevelMeetsScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             activeOpacity={0.7}>
-            <Text style={styles.eventAvgLabel}>Team Total AVG</Text>
+            <Text style={styles.eventAvgLabel}>{t('teams.teamTotalAvg')}</Text>
             <Text style={[styles.eventAvgValue, selectedEvent === 'allAround' && styles.eventAvgValueSelected]}>
               {formatTeamScore(avgTeamScore)}
             </Text>
@@ -637,7 +639,7 @@ export default function LevelMeetsScreen() {
 
           {/* Best Team Scores */}
           <View style={styles.personalRecords}>
-            <Text style={styles.prTitle}>Best Team Scores</Text>
+            <Text style={styles.prTitle}>{t('teams.bestTeamScores')}</Text>
             <View style={styles.prGrid}>
               {events.map(event => (
                 <View key={event} style={styles.prItem}>
@@ -646,7 +648,7 @@ export default function LevelMeetsScreen() {
                 </View>
               ))}
               <View style={styles.prItemFull}>
-                <Text style={styles.prEvent}>Team Total</Text>
+                <Text style={styles.prEvent}>{t('teams.teamTotal')}</Text>
                 <Text style={[styles.prScore, styles.prScoreLarge]}>
                   {formatTeamScore(bestEventScores.allAround)}
                 </Text>
@@ -672,7 +674,7 @@ export default function LevelMeetsScreen() {
                       <Text style={styles.meetName}>{item.meet.name}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                         <View style={styles.teamScoreBadge}>
-                          <Text style={styles.teamScoreLabel}>TEAM SCORE</Text>
+                          <Text style={styles.teamScoreLabel}>{t('teams.teamScore').toUpperCase()}</Text>
                           <Text style={styles.teamScoreValue}>{formatTeamScore(item.teamScore)}</Text>
                         </View>
                         <Text style={styles.chevronIcon}>›</Text>
@@ -691,11 +693,13 @@ export default function LevelMeetsScreen() {
 
                     <View style={[styles.meetMeta, { marginTop: theme.spacing.xs }]}>
                       <Text style={styles.metaText}>
-                        {item.gymnastCount} {item.gymnastCount === 1 ? 'gymnast' : 'gymnasts'} competed
+                        {item.gymnastCount === 1
+                          ? t('teams.oneGymnastCompeted')
+                          : t('teams.xGymnastsCompeted', { count: item.gymnastCount })}
                       </Text>
                       <Text style={styles.separator}>•</Text>
                       <Text style={[styles.metaText, { color: theme.colors.primary }]}>
-                        Tap to view details
+                        {t('teams.tapToViewDetails')}
                       </Text>
                     </View>
                   </LinearGradient>

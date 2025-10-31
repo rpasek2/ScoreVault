@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { calculateSeason, formatDate } from '@/utils/seasonUtils';
 import { addMeet } from '@/utils/database';
@@ -27,6 +28,7 @@ export default function AddMeetScreen() {
   const [season, setSeason] = useState('');
   const [loading, setLoading] = useState(false);
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   // Calculate season from date
@@ -44,7 +46,7 @@ export default function AddMeetScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a meet name');
+      Alert.alert(t('common.error'), t('meets.enterMeetName'));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function AddMeetScreen() {
 
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
       setLoading(false);
     }
   };
@@ -151,14 +153,14 @@ export default function AddMeetScreen() {
         colors={theme.colors.headerGradient}
         style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} disabled={loading}>
-          <Text style={[styles.cancelButton, loading && styles.disabled]}>Cancel</Text>
+          <Text style={[styles.cancelButton, loading && styles.disabled]}>{t('common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Add Meet</Text>
+        <Text style={styles.title}>{t('meets.addMeet')}</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
           {loading ? (
             <ActivityIndicator color={theme.colors.primary} />
           ) : (
-            <Text style={[styles.saveButton, !name.trim() && styles.disabled]}>Save</Text>
+            <Text style={[styles.saveButton, !name.trim() && styles.disabled]}>{t('common.save')}</Text>
           )}
         </TouchableOpacity>
       </LinearGradient>
@@ -169,11 +171,11 @@ export default function AddMeetScreen() {
           style={styles.formCard}>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>
-            Meet Name <Text style={styles.required}>*</Text>
+            {t('meets.meetName')} <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., State Championships"
+            placeholder={t('meets.meetNamePlaceholder')}
             placeholderTextColor={theme.colors.textTertiary}
             value={name}
             onChangeText={setName}
@@ -184,7 +186,7 @@ export default function AddMeetScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>
-            Date <Text style={styles.required}>*</Text>
+            {t('meets.date')} <Text style={styles.required}>*</Text>
           </Text>
           <TouchableOpacity
             style={styles.dateButton}
@@ -200,14 +202,14 @@ export default function AddMeetScreen() {
               onChange={handleDateChange}
             />
           )}
-          <Text style={styles.hint}>Season: {season}</Text>
+          <Text style={styles.hint}>{t('meets.season')}: {season}</Text>
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Location (Optional)</Text>
+          <Text style={styles.label}>{t('meets.location')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., City Arena"
+            placeholder={t('meets.locationPlaceholder')}
             placeholderTextColor={theme.colors.textTertiary}
             value={location}
             onChangeText={setLocation}

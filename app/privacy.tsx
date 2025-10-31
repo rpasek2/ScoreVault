@@ -6,9 +6,11 @@ import {
   ScrollView
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function PrivacyPolicyScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   const styles = StyleSheet.create({
     container: {
@@ -90,127 +92,127 @@ export default function PrivacyPolicyScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Privacy Policy</Text>
-          <Text style={styles.lastUpdated}>Last Updated: January 2025</Text>
+          <Text style={styles.title}>{t('privacy.title')}</Text>
+          <Text style={styles.lastUpdated}>{t('privacy.lastUpdated')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Introduction</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.introduction')}</Text>
           <Text style={styles.paragraph}>
-            ScoreVault ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Information We Collect</Text>
-
-          <Text style={styles.subsectionTitle}>Account Information</Text>
-          <Text style={styles.paragraph}>
-            When you create an account, we collect:
-          </Text>
-          <Text style={styles.bulletPoint}>• Email address</Text>
-          <Text style={styles.bulletPoint}>• Display name (optional)</Text>
-          <Text style={styles.bulletPoint}>• Password (encrypted and stored securely)</Text>
-
-          <Text style={styles.subsectionTitle}>User-Generated Content</Text>
-          <Text style={styles.paragraph}>
-            Information you create within the app:
-          </Text>
-          <Text style={styles.bulletPoint}>• Gymnast profiles (names, dates of birth, USAG numbers, levels)</Text>
-          <Text style={styles.bulletPoint}>• Meet information (names, dates, locations, seasons)</Text>
-          <Text style={styles.bulletPoint}>• Competition scores and placements</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How We Use Your Information</Text>
-          <Text style={styles.paragraph}>
-            We use the information we collect to:
-          </Text>
-          <Text style={styles.bulletPoint}>• Provide and maintain the ScoreVault service</Text>
-          <Text style={styles.bulletPoint}>• Create and manage your account</Text>
-          <Text style={styles.bulletPoint}>• Store your gymnastics data securely</Text>
-          <Text style={styles.bulletPoint}>• Generate analytics and performance insights</Text>
-          <Text style={styles.bulletPoint}>• Enable data export functionality</Text>
-          <Text style={styles.bulletPoint}>• Improve and optimize the app experience</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Storage and Security</Text>
-          <Text style={styles.paragraph}>
-            Your data is stored securely using Google Firebase, a trusted cloud platform with industry-standard security measures:
-          </Text>
-          <Text style={styles.bulletPoint}>• All data is encrypted in transit and at rest</Text>
-          <Text style={styles.bulletPoint}>• Authentication is handled by Firebase Auth</Text>
-          <Text style={styles.bulletPoint}>• Database access is restricted to authenticated users only</Text>
-          <Text style={styles.bulletPoint}>• Each user can only access their own data</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Sharing</Text>
-          <Text style={styles.paragraph}>
-            We do not sell, trade, or share your personal information with third parties. Your data is:
-          </Text>
-          <Text style={styles.bulletPoint}>• Never shared with advertisers</Text>
-          <Text style={styles.bulletPoint}>• Never sold to data brokers</Text>
-          <Text style={styles.bulletPoint}>• Only accessible by you through your account</Text>
-          <Text style={styles.bulletPoint}>• Stored solely for providing the ScoreVault service</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Rights and Controls</Text>
-          <Text style={styles.paragraph}>
-            You have complete control over your data:
-          </Text>
-          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>Access:</Text> View all your data within the app</Text>
-          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>Export:</Text> Download your data as CSV or JSON files</Text>
-          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>Edit:</Text> Modify or update any information at any time</Text>
-          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>Delete:</Text> Remove individual entries or your entire account</Text>
-          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>Portability:</Text> Take your data with you via export</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Children's Privacy</Text>
-          <Text style={styles.paragraph}>
-            ScoreVault is designed for parents and coaches to track gymnastics scores. While the app may contain information about children (gymnasts), accounts must be created and managed by adults (18+ years). We do not knowingly collect personal information directly from children under 13.
+            {t('privacy.introductionText')}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Retention</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.informationWeCollect')}</Text>
+
+          <Text style={styles.subsectionTitle}>{t('privacy.accountInformation')}</Text>
           <Text style={styles.paragraph}>
-            We retain your information for as long as your account is active. You can delete your data at any time:
+            {t('privacy.accountInformationText')}
           </Text>
-          <Text style={styles.bulletPoint}>• Individual items can be deleted within the app</Text>
-          <Text style={styles.bulletPoint}>• Account deletion removes all associated data</Text>
-          <Text style={styles.bulletPoint}>• Deleted data cannot be recovered</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.emailAddress')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.displayNameOptional')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.passwordEncrypted')}</Text>
+
+          <Text style={styles.subsectionTitle}>{t('privacy.userGeneratedContent')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.userGeneratedContentText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.gymnastProfiles')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.meetInformation')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.competitionScores')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Analytics and Cookies</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.howWeUse')}</Text>
           <Text style={styles.paragraph}>
-            ScoreVault does not use tracking cookies or third-party analytics services. All analytics shown in the app are generated locally from your own data for your personal use.
+            {t('privacy.howWeUseText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.provideService')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.manageAccount')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.storeDataSecurely')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.generateAnalytics')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.enableExport')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.improveApp')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('privacy.dataStorage')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.dataStorageText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.dataEncrypted')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.authFirebase')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.databaseRestricted')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.userOnlyAccess')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('privacy.dataSharing')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.dataSharingText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.neverAdvertisers')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.neverSold')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.onlyYouAccess')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.storedForService')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('privacy.yourRights')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.yourRightsText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>{t('privacy.access')}:</Text> {t('privacy.accessText')}</Text>
+          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>{t('privacy.export')}:</Text> {t('privacy.exportText')}</Text>
+          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>{t('common.edit')}:</Text> {t('privacy.editText')}</Text>
+          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>{t('common.delete')}:</Text> {t('privacy.deleteText')}</Text>
+          <Text style={styles.bulletPoint}>• <Text style={styles.bold}>{t('privacy.portability')}:</Text> {t('privacy.portabilityText')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('privacy.childrensPrivacy')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.childrensPrivacyText')}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Changes to This Privacy Policy</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.dataRetention')}</Text>
           <Text style={styles.paragraph}>
-            We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date at the top of this policy. Continued use of ScoreVault after changes constitutes acceptance of the updated policy.
+            {t('privacy.dataRetentionText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.individualDelete')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.accountDeletion')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.deletedNoRecovery')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('privacy.analyticsCookies')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.analyticsCookiesText')}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Us</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.changes')}</Text>
           <Text style={styles.paragraph}>
-            If you have questions about this Privacy Policy or how we handle your data, please contact us through:
+            {t('privacy.changesText')}
           </Text>
-          <Text style={styles.bulletPoint}>• Settings → Contact Support in the app</Text>
-          <Text style={styles.bulletPoint}>• Email: twotreessoftware@gmail.com</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('privacy.contactUs')}</Text>
+          <Text style={styles.paragraph}>
+            {t('privacy.contactUsText')}
+          </Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.contactApp')}</Text>
+          <Text style={styles.bulletPoint}>• {t('privacy.contactEmail')}</Text>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By using ScoreVault, you agree to this Privacy Policy and our handling of your information as described above.
+            {t('privacy.footer')}
           </Text>
         </View>
       </ScrollView>
