@@ -8,7 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -117,27 +118,10 @@ export default function SignInScreen() {
     logoContainer: {
       alignItems: 'center'
     },
-    logoCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 20,
-      ...theme.shadows.medium
-    },
-    logoIcon: {
-      fontSize: 40
-    },
-    logo: {
-      ...theme.typography.h2,
-      color: '#FFFFFF',
-      marginBottom: 8,
-      fontWeight: '700',
-      textShadowColor: 'rgba(0, 0, 0, 0.2)',
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: 4
+    logoImage: {
+      width: 280,
+      height: 120,
+      marginBottom: 20
     },
     subtitle: {
       ...theme.typography.body,
@@ -247,10 +231,11 @@ export default function SignInScreen() {
         {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoIcon}>⭐</Text>
-            </View>
-            <Text style={styles.logo}>ScoreVault</Text>
+            <Image
+              source={require('@/assets/images/logo-with-text.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.subtitle}>Track Every Perfect 10</Text>
           </View>
         </View>
