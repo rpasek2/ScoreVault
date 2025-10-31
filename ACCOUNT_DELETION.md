@@ -22,7 +22,7 @@ This will immediately delete:
 
 If you're unable to access the app, send an email to:
 
-**Email**: privacy@scorevault.app
+**Email**: twotreessoftware@gmail.com
 
 **Subject**: Account Deletion Request
 
@@ -64,7 +64,7 @@ When you delete your account, the following data is permanently removed:
 
 ## Questions?
 
-If you have questions about the deletion process, please contact us at privacy@scorevault.app
+If you have questions about the deletion process, please contact us at twotreessoftware@gmail.com
 
 ---
 
