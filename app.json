@@ -46,9 +46,13 @@
           "photosPermission": "Allow ScoreVault to save score cards to your photo library.",
           "savePhotosPermission": "Allow ScoreVault to save score cards to your photo library.",
           "isAccessMediaLocationEnabled": true,
-          "androidPermissions": ["READ_MEDIA_IMAGES", "WRITE_EXTERNAL_STORAGE"]
+          "androidPermissions": [
+            "READ_MEDIA_IMAGES",
+            "WRITE_EXTERNAL_STORAGE"
+          ]
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

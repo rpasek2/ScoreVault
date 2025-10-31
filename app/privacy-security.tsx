@@ -6,10 +6,12 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from 'firebase/auth';
 
 export default function PrivacySecurityScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const router = useRouter();
   const auth = getAuth();
@@ -21,33 +23,33 @@ export default function PrivacySecurityScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all password fields');
+      Alert.alert(t('common.error'), t('security.fillAllPasswordFields'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match');
+      Alert.alert(t('common.error'), t('security.passwordsDoNotMatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters');
+      Alert.alert(t('common.error'), t('security.passwordMinLength'));
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     Alert.alert(
-      'Change Password',
-      'Are you sure you want to change your password?',
+      t('settings.changePassword'),
+      t('security.changePasswordConfirm'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Change',
+          text: t('security.change'),
           onPress: async () => {
             setLoading(true);
             try {
@@ -64,7 +66,7 @@ export default function PrivacySecurityScreen() {
               await updatePassword(currentUser, newPassword);
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Success', 'Your password has been changed successfully');
+              Alert.alert(t('common.success'), t('security.passwordChangedSuccess'));
 
               // Clear form
               setCurrentPassword('');
@@ -72,17 +74,17 @@ export default function PrivacySecurityScreen() {
               setConfirmPassword('');
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              let errorMessage = 'Failed to change password';
+              let errorMessage = t('security.failedToChangePassword');
 
               if (error.code === 'auth/wrong-password') {
-                errorMessage = 'Current password is incorrect';
+                errorMessage = t('security.currentPasswordIncorrect');
               } else if (error.code === 'auth/weak-password') {
-                errorMessage = 'New password is too weak';
+                errorMessage = t('security.passwordTooWeak');
               } else if (error.code === 'auth/requires-recent-login') {
-                errorMessage = 'Please log out and log in again before changing password';
+                errorMessage = t('security.reloginRequired');
               }
 
-              Alert.alert('Error', errorMessage);
+              Alert.alert(t('common.error'), errorMessage);
             } finally {
               setLoading(false);
             }
@@ -96,29 +98,29 @@ export default function PrivacySecurityScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
     Alert.alert(
-      '⚠️ Delete Account',
-      'This will permanently delete your account and ALL data including gymnasts, meets, and scores. This action cannot be undone.\n\nAre you absolutely sure?',
+      t('security.deleteAccountTitle'),
+      t('security.deleteAccountWarning'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Delete Forever',
+          text: t('security.deleteForever'),
           style: 'destructive',
           onPress: () => {
             // Second confirmation
             Alert.alert(
-              'Final Confirmation',
-              'This will permanently delete:\n• Your account\n• All gymnasts\n• All meets\n• All scores\n\nThis cannot be undone. Continue?',
+              t('security.finalConfirmation'),
+              t('security.deleteAccountItems'),
               [
                 {
-                  text: 'Cancel',
+                  text: t('common.cancel'),
                   style: 'cancel'
                 },
                 {
-                  text: 'Delete Everything',
+                  text: t('security.deleteEverything'),
                   style: 'destructive',
                   onPress: async () => {
                     setLoading(true);
@@ -139,13 +141,13 @@ export default function PrivacySecurityScreen() {
                       // Sign out will be handled automatically by auth state change
                     } catch (error: any) {
                       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                      let errorMessage = 'Failed to delete account';
+                      let errorMessage = t('security.failedToDeleteAccount');
 
                       if (error.code === 'auth/requires-recent-login') {
-                        errorMessage = 'For security, please log out and log in again before deleting your account';
+                        errorMessage = t('security.reloginToDelete');
                       }
 
-                      Alert.alert('Error', errorMessage);
+                      Alert.alert(t('common.error'), errorMessage);
                     } finally {
                       setLoading(false);
                     }
@@ -273,27 +275,27 @@ export default function PrivacySecurityScreen() {
           colors={theme.colors.headerGradient}
           style={styles.header}>
           <Text style={styles.headerIcon}>🔐</Text>
-          <Text style={styles.title}>Privacy & Security</Text>
+          <Text style={styles.title}>{t('settings.privacySecurity')}</Text>
           <Text style={styles.subtitle}>
-            Manage your account security and privacy settings
+            {t('security.manageSecuritySettings')}
           </Text>
         </LinearGradient>
 
         <View style={styles.content}>
           {/* Change Password Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Password</Text>
+            <Text style={styles.sectionTitle}>{t('security.password')}</Text>
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.card}>
-              <Text style={styles.cardTitle}>Change Password</Text>
+              <Text style={styles.cardTitle}>{t('settings.changePassword')}</Text>
               <Text style={styles.cardText}>
-                Update your password to keep your account secure
+                {t('security.updatePasswordToKeepSecure')}
               </Text>
 
               <TextInput
                 style={styles.input}
-                placeholder="Current Password"
+                placeholder={t('settings.currentPassword')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
@@ -304,7 +306,7 @@ export default function PrivacySecurityScreen() {
 
               <TextInput
                 style={styles.input}
-                placeholder="New Password (min 6 characters)"
+                placeholder={t('security.newPasswordPlaceholder')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={newPassword}
                 onChangeText={setNewPassword}
@@ -315,7 +317,7 @@ export default function PrivacySecurityScreen() {
 
               <TextInput
                 style={styles.input}
-                placeholder="Confirm New Password"
+                placeholder={t('settings.confirmNewPassword')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -331,7 +333,7 @@ export default function PrivacySecurityScreen() {
                 <LinearGradient
                   colors={theme.colors.avatarGradient}
                   style={[styles.button, (loading || !currentPassword || !newPassword || !confirmPassword) && styles.buttonDisabled]}>
-                  <Text style={styles.buttonText}>Change Password</Text>
+                  <Text style={styles.buttonText}>{t('settings.changePassword')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>
@@ -339,65 +341,65 @@ export default function PrivacySecurityScreen() {
 
           {/* Data Privacy Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Data Privacy</Text>
+            <Text style={styles.sectionTitle}>{t('security.dataPrivacy')}</Text>
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.card}>
-              <Text style={styles.cardTitle}>Your Data</Text>
+              <Text style={styles.cardTitle}>{t('security.yourData')}</Text>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>All gymnast, meet, and score data is stored locally on your device</Text>
+                <Text style={styles.infoText}>{t('security.dataStoredLocally')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Cloud backups are optional and only created when you explicitly request them</Text>
+                <Text style={styles.infoText}>{t('security.cloudBackupsOptional')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Your data is never shared with third parties</Text>
+                <Text style={styles.infoText}>{t('security.neverSharedWithThirdParties')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>You can export or delete your data at any time from Settings</Text>
+                <Text style={styles.infoText}>{t('security.canExportOrDelete')}</Text>
               </View>
             </LinearGradient>
           </View>
 
           {/* Account Security Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account Security</Text>
+            <Text style={styles.sectionTitle}>{t('security.accountSecurity')}</Text>
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.card}>
-              <Text style={styles.cardTitle}>Security Tips</Text>
+              <Text style={styles.cardTitle}>{t('security.securityTips')}</Text>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Use a strong, unique password for your account</Text>
+                <Text style={styles.infoText}>{t('security.useStrongPassword')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Change your password regularly</Text>
+                <Text style={styles.infoText}>{t('security.changePasswordRegularly')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Never share your password with anyone</Text>
+                <Text style={styles.infoText}>{t('security.neverSharePassword')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.infoText}>Log out on shared devices</Text>
+                <Text style={styles.infoText}>{t('security.logoutSharedDevices')}</Text>
               </View>
             </LinearGradient>
           </View>
 
           {/* Delete Account Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Danger Zone</Text>
+            <Text style={styles.sectionTitle}>{t('settings.dangerZone')}</Text>
             <LinearGradient
               colors={theme.colors.cardGradient}
               style={styles.card}>
-              <Text style={styles.cardTitle}>Delete Account</Text>
+              <Text style={styles.cardTitle}>{t('settings.deleteAccount')}</Text>
               <Text style={styles.cardText}>
-                Permanently delete your account and all associated data. This action cannot be undone.
+                {t('security.deleteAccountDescription')}
               </Text>
 
               <TouchableOpacity
@@ -407,7 +409,7 @@ export default function PrivacySecurityScreen() {
                 <LinearGradient
                   colors={theme.colors.cardGradient}
                   style={[styles.button, styles.deleteButton, loading && styles.buttonDisabled]}>
-                  <Text style={styles.deleteButtonText}>Delete My Account</Text>
+                  <Text style={styles.deleteButtonText}>{t('settings.deleteAccount')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>

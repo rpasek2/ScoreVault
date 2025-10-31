@@ -10,6 +10,8 @@ export interface Timestamp {
 export interface User {
   id: string;
   email: string;
+  displayName?: string;
+  photoUri?: string; // Local file URI for profile photo
   createdAt: Timestamp;
 }
 
@@ -22,6 +24,7 @@ export interface Gymnast {
   usagNumber?: string;
   level: string;
   discipline: 'Womens' | 'Mens';
+  photoUri?: string; // Local file URI for gymnast photo
   isHidden?: boolean;
   createdAt: Timestamp;
 }
@@ -136,4 +139,26 @@ export interface ScoreCardData {
   location?: string;
   scores: EventScores;
   placements: Placements;
+}
+
+export interface TeamPlacement {
+  id: string;
+  userId: string;
+  meetId: string;
+  level: string;
+  discipline: 'Womens' | 'Mens';
+  placements: Placements; // Placements for each event and all-around
+  createdAt: Timestamp;
+}
+
+export interface TeamScoreCardData {
+  teamName: string; // e.g., "Level 4 - Women's Team"
+  level: string;
+  discipline: 'Womens' | 'Mens';
+  meetName: string;
+  meetDate: Date;
+  location?: string;
+  teamScores: EventScores; // Team total for each event
+  teamPlacements?: Placements; // Team placements for each event
+  countingScoreCount: 3 | 5; // For women's levels 1-5
 }

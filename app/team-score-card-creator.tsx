@@ -16,16 +16,15 @@ import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
-import { ScoreCard } from '@/components/ScoreCard';
+import { TeamScoreCard } from '@/components/TeamScoreCard';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { GRADIENT_OPTIONS, DECORATIVE_ICON_OPTIONS } from '@/constants/gradients';
-import { ScoreCardData, ScoreCardConfig, GradientName, AspectRatio, DecorativeIcon } from '@/types';
-import { getScoreById } from '@/utils/database';
-import { getGymnastById } from '@/utils/database';
-import { getMeetById } from '@/utils/database';
+import { TeamScoreCardData, ScoreCardConfig, GradientName, AspectRatio, DecorativeIcon, EventScores } from '@/types';
+import { getMeetById, getGymnasts, getScores, getTeamPlacement } from '@/utils/database';
+import { calculateTeamScore } from '@/utils/teamScores';
 
-export default function ScoreCardCreatorScreen() {
+export default function TeamScoreCardCreatorScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
@@ -34,7 +33,7 @@ export default function ScoreCardCreatorScreen() {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [cardData, setCardData] = useState<ScoreCardData | null>(null);
+  const [cardData, setCardData] = useState<TeamScoreCardData | null>(null);
   const [config, setConfig] = useState<ScoreCardConfig>({
     backgroundType: 'gradient',
     gradientName: 'purple',
@@ -43,50 +42,86 @@ export default function ScoreCardCreatorScreen() {
     decorativeIcon: 'stars'
   });
 
-  // Load score data
+  // Load team score data
   useEffect(() => {
-    loadScoreData();
+    loadTeamScoreData();
   }, []);
 
-  const loadScoreData = async () => {
+  const loadTeamScoreData = async () => {
     try {
-      const scoreId = params.scoreId as string;
-      if (!scoreId) {
+      const level = params.level as string;
+      const discipline = params.discipline as 'Womens' | 'Mens';
+      const meetId = params.meetId as string;
+      const countingScoreCount = params.countingScoreCount ? parseInt(params.countingScoreCount as string) as 3 | 5 : 3;
+
+      if (!level || !discipline || !meetId) {
         Alert.alert(t('common.error'), t('scoreCard.noScoreSelected'));
         router.back();
         return;
       }
 
-      const score = await getScoreById(scoreId);
-      if (!score) {
-        Alert.alert(t('common.error'), t('scores.scoreNotFound'));
+      const meet = await getMeetById(meetId);
+      if (!meet) {
+        Alert.alert(t('common.error'), t('meets.meetNotFound'));
         router.back();
         return;
       }
 
-      const gymnast = await getGymnastById(score.gymnastId);
-      const meet = await getMeetById(score.meetId);
+      const [allGymnasts, allScores] = await Promise.all([
+        getGymnasts(),
+        getScores()
+      ]);
 
-      if (!gymnast || !meet) {
-        Alert.alert(t('common.error'), t('scoreCard.failedToLoadData'));
+      // Get scores for this meet and level
+      const meetScores = allScores.filter(
+        s => s.meetId === meetId && s.level === level
+      );
+
+      // Filter by discipline
+      const relevantGymnasts = allGymnasts.filter(g => g.discipline === discipline);
+      const gymnastIds = new Set(relevantGymnasts.map(g => g.id));
+      const relevantScores = meetScores.filter(s => gymnastIds.has(s.gymnastId));
+
+      if (relevantScores.length === 0) {
+        Alert.alert(t('common.error'), t('scoreCard.noTeamScoresFound'));
         router.back();
         return;
       }
 
-      const data: ScoreCardData = {
-        gymnastName: gymnast.name,
-        level: score.level || gymnast.level,
-        discipline: gymnast.discipline,
+      // Calculate team scores
+      const teamScore = calculateTeamScore(relevantScores, discipline, relevantGymnasts, countingScoreCount);
+
+      // Convert teamScores Record to EventScores object
+      const eventScores: EventScores = {
+        vault: teamScore.teamScores.vault,
+        bars: teamScore.teamScores.bars,
+        beam: teamScore.teamScores.beam,
+        floor: teamScore.teamScores.floor,
+        pommelHorse: teamScore.teamScores.pommelHorse,
+        rings: teamScore.teamScores.rings,
+        parallelBars: teamScore.teamScores.parallelBars,
+        highBar: teamScore.teamScores.highBar,
+        allAround: teamScore.totalScore
+      };
+
+      // Load team placements
+      const teamPlacementData = await getTeamPlacement(meetId, level, discipline);
+
+      const data: TeamScoreCardData = {
+        teamName: `${level} ${discipline === 'Womens' ? "Women's" : "Men's"} Team`,
+        level: level,
+        discipline: discipline,
         meetName: meet.name,
         meetDate: meet.date.toDate ? meet.date.toDate() : new Date(meet.date.toMillis!()),
         location: meet.location,
-        scores: score.scores,
-        placements: score.placements
+        teamScores: eventScores,
+        teamPlacements: teamPlacementData?.placements,
+        countingScoreCount: countingScoreCount
       };
 
       setCardData(data);
     } catch (error) {
-      console.error('Error loading score data:', error);
+      console.error('Error loading team score data:', error);
       Alert.alert(t('common.error'), t('scoreCard.failedToLoadScore'));
       router.back();
     } finally {
@@ -517,7 +552,7 @@ export default function ScoreCardCreatorScreen() {
     <View style={styles.container}>
       {/* Hidden full-size card for capture - absolutely positioned */}
       <View ref={cardRef} style={styles.hiddenCard} collapsable={false}>
-        <ScoreCard data={cardData} config={config} />
+        <TeamScoreCard data={cardData} config={config} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -526,7 +561,7 @@ export default function ScoreCardCreatorScreen() {
           <Text style={styles.sectionTitle}>{t('scoreCard.preview')}</Text>
           <View style={styles.previewContainer}>
             <View style={styles.cardWrapper}>
-              <ScoreCard data={cardData} config={config} />
+              <TeamScoreCard data={cardData} config={config} />
             </View>
           </View>
         </View>

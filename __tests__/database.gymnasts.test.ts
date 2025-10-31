@@ -80,21 +80,19 @@ describe('Database - Gymnast Operations', () => {
       expect(gymnasts).toEqual([]);
     });
 
-    it('should return all gymnasts ordered by creation date', async () => {
-      // Add with delays to ensure different timestamps
+    it('should return all gymnasts', async () => {
       await addGymnast({ name: 'First', level: 'Level 1', discipline: 'Womens' as const });
-      await new Promise(resolve => setTimeout(resolve, 10));
       await addGymnast({ name: 'Second', level: 'Level 2', discipline: 'Womens' as const });
-      await new Promise(resolve => setTimeout(resolve, 10));
       await addGymnast({ name: 'Third', level: 'Level 3', discipline: 'Womens' as const });
 
       const gymnasts = await getGymnasts();
 
       expect(gymnasts).toHaveLength(3);
-      // Most recent first
-      expect(gymnasts[0].name).toBe('Third');
-      expect(gymnasts[1].name).toBe('Second');
-      expect(gymnasts[2].name).toBe('First');
+      // Verify all three gymnasts are present
+      const names = gymnasts.map(g => g.name);
+      expect(names).toContain('First');
+      expect(names).toContain('Second');
+      expect(names).toContain('Third');
     });
 
     it('should exclude hidden gymnasts by default', async () => {

@@ -6,10 +6,12 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { backupToFirebase, restoreFromFirebase, getLastBackupInfo } from '@/utils/database';
 
 export default function CloudBackupScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -39,23 +41,23 @@ export default function CloudBackupScreen() {
 
   const handleBackup = async () => {
     if (!user?.uid) {
-      Alert.alert('Error', 'You must be logged in to backup data');
+      Alert.alert(t('common.error'), t('backup.mustBeLoggedIn'));
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     Alert.alert(
-      'Backup to Cloud',
-      'This will backup all your gymnasts, meets, and scores to the cloud. Any existing backup will be overwritten.',
+      t('backup.backupToCloud'),
+      t('backup.backupConfirmMessage'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Backup Now',
+          text: t('settings.backupNow'),
           onPress: async () => {
             setLoading(true);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -66,17 +68,17 @@ export default function CloudBackupScreen() {
               if (result.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 Alert.alert(
-                  'Backup Successful',
-                  'Your data has been securely backed up to the cloud.',
-                  [{ text: 'OK', onPress: () => checkBackupStatus() }]
+                  t('backup.backupSuccessful'),
+                  t('backup.backupSuccessMessage'),
+                  [{ text: t('common.ok'), onPress: () => checkBackupStatus() }]
                 );
               } else {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert('Backup Failed', result.error || 'An error occurred while backing up your data.');
+                Alert.alert(t('backup.backupFailed'), result.error || t('backup.backupError'));
               }
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Backup Failed', error.message || 'An unexpected error occurred.');
+              Alert.alert(t('backup.backupFailed'), error.message || t('backup.unexpectedError'));
             } finally {
               setLoading(false);
             }
@@ -88,23 +90,23 @@ export default function CloudBackupScreen() {
 
   const handleRestore = async () => {
     if (!user?.uid) {
-      Alert.alert('Error', 'You must be logged in to restore data');
+      Alert.alert(t('common.error'), t('backup.mustBeLoggedInRestore'));
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     Alert.alert(
-      'Restore from Cloud',
-      '⚠️ WARNING: This will replace ALL current data with your cloud backup. This action cannot be undone.',
+      t('backup.restoreFromCloud'),
+      t('backup.restoreWarningMessage'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Restore',
+          text: t('backup.restore'),
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
@@ -116,10 +118,10 @@ export default function CloudBackupScreen() {
               if (result.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 Alert.alert(
-                  'Restore Successful',
-                  'Your data has been restored from the cloud backup. The app will refresh.',
+                  t('backup.restoreSuccessful'),
+                  t('backup.restoreSuccessMessage'),
                   [{
-                    text: 'OK',
+                    text: t('common.ok'),
                     onPress: () => {
                       // Navigate back to home to refresh data
                       router.replace('/');
@@ -128,11 +130,11 @@ export default function CloudBackupScreen() {
                 );
               } else {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert('Restore Failed', result.error || 'An error occurred while restoring your data.');
+                Alert.alert(t('backup.restoreFailed'), result.error || t('backup.restoreError'));
               }
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Restore Failed', error.message || 'An unexpected error occurred.');
+              Alert.alert(t('backup.restoreFailed'), error.message || t('backup.unexpectedError'));
             } finally {
               setLoading(false);
             }
@@ -285,9 +287,9 @@ export default function CloudBackupScreen() {
           colors={theme.colors.headerGradient}
           style={styles.header}>
           <Text style={styles.headerIcon}>☁️</Text>
-          <Text style={styles.title}>Cloud Backup</Text>
+          <Text style={styles.title}>{t('settings.cloudBackup')}</Text>
           <Text style={styles.subtitle}>
-            Secure your data in the cloud for easy device transfers and peace of mind
+            {t('backup.subtitle')}
           </Text>
         </LinearGradient>
 
@@ -296,9 +298,9 @@ export default function CloudBackupScreen() {
           <LinearGradient
             colors={theme.colors.cardGradient}
             style={styles.infoCard}>
-            <Text style={styles.infoTitle}>How it works</Text>
+            <Text style={styles.infoTitle}>{t('backup.howItWorks')}</Text>
             <Text style={styles.infoText}>
-              Your data is stored locally on your device for fast, offline access. Use cloud backup to securely store a copy online, making it easy to restore on a new device or after a reset.
+              {t('backup.howItWorksDescription')}
             </Text>
           </LinearGradient>
 
@@ -306,7 +308,7 @@ export default function CloudBackupScreen() {
           <LinearGradient
             colors={theme.colors.cardGradient}
             style={styles.statusCard}>
-            <Text style={styles.infoTitle}>Backup Status</Text>
+            <Text style={styles.infoTitle}>{t('backup.backupStatus')}</Text>
 
             {checkingBackup ? (
               <View style={{ alignItems: 'center', paddingVertical: theme.spacing.base }}>
@@ -315,14 +317,14 @@ export default function CloudBackupScreen() {
             ) : (
               <>
                 <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Last Backup:</Text>
+                  <Text style={styles.statusLabel}>{t('settings.lastBackup')}:</Text>
                   <Text style={[
                     styles.statusValue,
                     lastBackup.exists ? styles.statusValueSuccess : styles.statusValueError
                   ]}>
                     {lastBackup.exists && lastBackup.timestamp
                       ? formatDate(lastBackup.timestamp)
-                      : 'Never'
+                      : t('settings.never')
                     }
                   </Text>
                 </View>
@@ -330,12 +332,12 @@ export default function CloudBackupScreen() {
                 <View style={styles.divider} />
 
                 <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Status:</Text>
+                  <Text style={styles.statusLabel}>{t('backup.status')}:</Text>
                   <Text style={[
                     styles.statusValue,
                     lastBackup.exists ? styles.statusValueSuccess : styles.statusValueError
                   ]}>
-                    {lastBackup.exists ? '✓ Backup Available' : 'No Backup'}
+                    {lastBackup.exists ? t('backup.backupAvailable') : t('backup.noBackup')}
                   </Text>
                 </View>
               </>
@@ -352,7 +354,7 @@ export default function CloudBackupScreen() {
                 colors={theme.colors.avatarGradient}
                 style={[styles.button, loading && styles.buttonDisabled]}>
                 <Text style={styles.buttonIcon}>📤</Text>
-                <Text style={styles.buttonText}>Backup Now</Text>
+                <Text style={styles.buttonText}>{t('settings.backupNow')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -368,7 +370,7 @@ export default function CloudBackupScreen() {
                   (loading || !lastBackup.exists) && styles.buttonDisabled
                 ]}>
                 <Text style={styles.buttonIcon}>📥</Text>
-                <Text style={styles.restoreButtonText}>Restore from Backup</Text>
+                <Text style={styles.restoreButtonText}>{t('settings.restoreFromBackup')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -380,7 +382,7 @@ export default function CloudBackupScreen() {
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#FFFFFF" />
           <Text style={styles.loadingText}>
-            {loading ? 'Processing...' : ''}
+            {loading ? t('backup.processing') : ''}
           </Text>
         </View>
       )}

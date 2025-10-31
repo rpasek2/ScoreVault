@@ -6,11 +6,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Gymnast } from '@/types';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import { getInitials, UI_PALETTE, CARD_SHADOW, getCardBorder } from '@/constants/theme';
@@ -34,6 +36,7 @@ export default function GymnastsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const fetchGymnastsWithStats = async () => {
@@ -268,6 +271,11 @@ export default function GymnastsScreen() {
       alignItems: 'center',
       overflow: 'hidden'
     },
+    avatarImage: {
+      width: 64,
+      height: 64,
+      borderRadius: 32
+    },
     avatarText: {
       ...theme.typography.h3,
       color: theme.colors.surface,
@@ -309,14 +317,14 @@ export default function GymnastsScreen() {
       gap: theme.spacing.sm
     },
     levelBadge: {
-      backgroundColor: 'rgba(107, 110, 255, 0.12)',
+      backgroundColor: isDark ? 'rgba(107, 110, 255, 0.3)' : 'rgba(107, 110, 255, 0.12)',
       paddingHorizontal: theme.spacing.base,
       paddingVertical: 4,
       borderRadius: theme.borderRadius.md
     },
     levelText: {
       ...theme.typography.caption,
-      color: theme.colors.primary,
+      color: isDark ? '#A5A8FF' : theme.colors.primary,
       fontWeight: '600'
     },
     scoreCountText: {
@@ -328,7 +336,7 @@ export default function GymnastsScreen() {
     },
     chevron: {
       fontSize: 28,
-      color: theme.colors.border,
+      color: theme.colors.textSecondary,
       fontWeight: '300'
     }
   });
@@ -354,9 +362,9 @@ export default function GymnastsScreen() {
             style={styles.emptyIconContainer}>
             <Text style={styles.emptyIcon}>👤</Text>
           </LinearGradient>
-          <Text style={styles.emptyText}>No Gymnasts Yet</Text>
+          <Text style={styles.emptyText}>{t('gymnasts.noGymnasts')}</Text>
           <Text style={styles.emptySubtext}>
-            Add your first gymnast to start tracking their progress and scores
+            {t('gymnasts.noGymnastsSubtext')}
           </Text>
         </View>
       ) : (
@@ -382,7 +390,7 @@ export default function GymnastsScreen() {
                   activeOpacity={0.7}>
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionHeaderText}>
-                      {group.level} - {group.discipline === 'Womens' ? "Women's" : "Men's"}
+                      {group.level} - {group.discipline === 'Womens' ? t('gymnasts.womens') : t('gymnasts.mens')}
                       <Text style={styles.sectionCount}> ({group.gymnasts.length})</Text>
                     </Text>
                     {group.isCollapsible && (
@@ -410,15 +418,19 @@ export default function GymnastsScreen() {
                       onPress={() => handleGymnastPress(gymnast.id)}
                       activeOpacity={0.7}>
                       <View style={styles.gymnastCard}>
-                        {/* Avatar with Initials */}
+                        {/* Avatar with Photo or Initials */}
                         <View style={styles.avatarContainer}>
-                          <LinearGradient
-                            colors={theme.colors.avatarGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.avatar}>
-                            <Text style={styles.avatarText}>{getInitials(gymnast.name)}</Text>
-                          </LinearGradient>
+                          {gymnast.photoUri ? (
+                            <Image source={{ uri: gymnast.photoUri }} style={styles.avatarImage} />
+                          ) : (
+                            <LinearGradient
+                              colors={theme.colors.avatarGradient}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.avatar}>
+                              <Text style={styles.avatarText}>{getInitials(gymnast.name)}</Text>
+                            </LinearGradient>
+                          )}
                         </View>
 
                         {/* Gymnast Info */}
@@ -427,7 +439,7 @@ export default function GymnastsScreen() {
                           <View style={styles.metaRow}>
                             {gymnast.scoreCount > 0 && (
                               <Text style={styles.scoreCountText}>
-                                {gymnast.scoreCount} {gymnast.scoreCount === 1 ? 'meet' : 'meets'}
+                                {gymnast.scoreCount} {gymnast.scoreCount === 1 ? t('gymnasts.meets') : t('gymnasts.meetsPlural')}
                               </Text>
                             )}
                           </View>

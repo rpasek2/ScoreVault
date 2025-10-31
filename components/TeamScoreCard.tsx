@@ -1,21 +1,30 @@
 import React from 'react';
 import { View, Text, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScoreCardData, ScoreCardConfig } from '@/types';
+import { TeamScoreCardData, ScoreCardConfig } from '@/types';
 import { SCORE_CARD_GRADIENTS, DECORATIVE_ICON_OPTIONS } from '@/constants/gradients';
 
-interface ScoreCardProps {
-  data: ScoreCardData;
+interface TeamScoreCardProps {
+  data: TeamScoreCardData;
   config: ScoreCardConfig;
 }
 
-export const ScoreCard: React.FC<ScoreCardProps> = ({ data, config }) => {
+export const TeamScoreCard: React.FC<TeamScoreCardProps> = ({ data, config }) => {
   const gradient = SCORE_CARD_GRADIENTS[config.gradientName];
   const isStory = config.aspectRatio === 'story';
   const iconConfig = DECORATIVE_ICON_OPTIONS.find(opt => opt.type === config.decorativeIcon) || DECORATIVE_ICON_OPTIONS[0];
 
   // Extract accent color from gradient for dynamic theming
   const accentColor = gradient.colors[0];
+
+  // Format date
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   // Get medal emoji for placement
   const getMedalEmoji = (placement?: number): string => {
@@ -36,32 +45,23 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ data, config }) => {
     return '#6B6EFF';
   };
 
-  // Format date
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   // Get events to display based on discipline
   const getEvents = () => {
     if (data.discipline === 'Womens') {
       return [
-        { name: 'Vault', score: data.scores.vault, placement: data.placements.vault },
-        { name: 'Bars', score: data.scores.bars, placement: data.placements.bars },
-        { name: 'Beam', score: data.scores.beam, placement: data.placements.beam },
-        { name: 'Floor', score: data.scores.floor, placement: data.placements.floor }
+        { name: 'Vault', score: data.teamScores.vault, placement: data.teamPlacements?.vault },
+        { name: 'Bars', score: data.teamScores.bars, placement: data.teamPlacements?.bars },
+        { name: 'Beam', score: data.teamScores.beam, placement: data.teamPlacements?.beam },
+        { name: 'Floor', score: data.teamScores.floor, placement: data.teamPlacements?.floor }
       ];
     } else {
       return [
-        { name: 'Floor', score: data.scores.floor, placement: data.placements.floor },
-        { name: 'Pommel Horse', score: data.scores.pommelHorse, placement: data.placements.pommelHorse },
-        { name: 'Rings', score: data.scores.rings, placement: data.placements.rings },
-        { name: 'Vault', score: data.scores.vault, placement: data.placements.vault },
-        { name: 'Parallel Bars', score: data.scores.parallelBars, placement: data.placements.parallelBars },
-        { name: 'High Bar', score: data.scores.highBar, placement: data.placements.highBar }
+        { name: 'Floor', score: data.teamScores.floor, placement: data.teamPlacements?.floor },
+        { name: 'Pommel Horse', score: data.teamScores.pommelHorse, placement: data.teamPlacements?.pommelHorse },
+        { name: 'Rings', score: data.teamScores.rings, placement: data.teamPlacements?.rings },
+        { name: 'Vault', score: data.teamScores.vault, placement: data.teamPlacements?.vault },
+        { name: 'Parallel Bars', score: data.teamScores.parallelBars, placement: data.teamPlacements?.parallelBars },
+        { name: 'High Bar', score: data.teamScores.highBar, placement: data.teamPlacements?.highBar }
       ];
     }
   };
@@ -77,14 +77,14 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ data, config }) => {
   // Card content JSX (reused for both background types)
   const cardContent = (
     <View style={contentStyle}>
-      {/* Header - Gymnast Info with optional decorative icons */}
+      {/* Header - Team Info with optional decorative icons */}
       <View style={styles.header}>
         <View style={styles.decorativeStars}>
           {iconConfig.headerIcon && <Text style={styles.starLeft}>{iconConfig.headerIcon}</Text>}
           <View style={[styles.nameContainer, !iconConfig.headerIcon && styles.nameContainerFull]}>
-            <Text style={styles.gymnastName}>{data.gymnastName}</Text>
+            <Text style={styles.teamName}>{data.teamName}</Text>
             <View style={styles.levelBadge}>
-              <Text style={styles.gymnastInfo}>
+              <Text style={styles.teamInfo}>
                 {data.level}
               </Text>
             </View>
@@ -136,36 +136,41 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ data, config }) => {
         </View>
       </View>
 
-      {/* All-Around - Featured Score */}
-      <View style={[styles.allAroundCard, { backgroundColor: `rgba(255, 255, 255, ${cardOpacity})` }]}>
-        <View style={styles.allAroundHeader}>
+      {/* Team Total - Featured Score */}
+      <View style={[styles.teamTotalCard, { backgroundColor: `rgba(255, 255, 255, ${cardOpacity})` }]}>
+        <View style={styles.teamTotalHeader}>
           {iconConfig.allAroundIcon && <Text style={styles.starDecoration}>{iconConfig.allAroundIcon}</Text>}
-          <Text style={styles.allAroundLabel}>ALL-AROUND</Text>
+          <Text style={styles.teamTotalLabel}>TEAM TOTAL</Text>
           {iconConfig.allAroundIcon && <Text style={styles.starDecoration}>{iconConfig.allAroundIcon}</Text>}
         </View>
-        <View style={styles.allAroundContent}>
-          <View style={styles.allAroundValueWrapper}>
-            <Text style={[styles.allAroundValue, { color: accentColor }]}>
-              {data.scores.allAround}
+        <View style={styles.teamTotalContent}>
+          <View style={styles.teamTotalValueWrapper}>
+            <Text style={[styles.teamTotalValue, { color: accentColor }]}>
+              {data.teamScores.allAround}
             </Text>
-            {data.placements.allAround && (
+            {data.teamPlacements?.allAround && (
               <View style={[
-                styles.allAroundPlacementBadge,
-                { backgroundColor: getPlacementColor(data.placements.allAround) }
+                styles.teamTotalPlacementBadge,
+                { backgroundColor: getPlacementColor(data.teamPlacements.allAround) }
               ]}>
-                <Text style={styles.allAroundPlacementEmoji}>
-                  {getMedalEmoji(data.placements.allAround)}
+                <Text style={styles.teamTotalPlacementEmoji}>
+                  {getMedalEmoji(data.teamPlacements.allAround)}
                 </Text>
-                <Text style={styles.allAroundPlacementText}>
-                  {data.placements.allAround === 1 ? '1ST' :
-                   data.placements.allAround === 2 ? '2ND' :
-                   data.placements.allAround === 3 ? '3RD' :
-                   `${data.placements.allAround}TH`}
+                <Text style={styles.teamTotalPlacementText}>
+                  {data.teamPlacements.allAround === 1 ? '1ST' :
+                   data.teamPlacements.allAround === 2 ? '2ND' :
+                   data.teamPlacements.allAround === 3 ? '3RD' :
+                   `${data.teamPlacements.allAround}TH`}
                 </Text>
               </View>
             )}
           </View>
         </View>
+        {data.countingScoreCount && (
+          <Text style={styles.countingScoreNote}>
+            Top {data.countingScoreCount} scores counting
+          </Text>
+        )}
       </View>
 
       {/* Branding */}
@@ -260,7 +265,7 @@ const styles = StyleSheet.create({
   nameContainerFull: {
     flex: 0
   },
-  gymnastName: {
+  teamName: {
     fontSize: 52,
     fontWeight: '800',
     color: '#FFFFFF',
@@ -279,7 +284,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.4)'
   },
-  gymnastInfo: {
+  teamInfo: {
     fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -357,14 +362,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.3
   },
-  eventBoxMedal: {
-    fontSize: 16
-  },
   eventBoxScore: {
     fontSize: 36,
     fontWeight: '900',
     letterSpacing: 0.5,
     marginBottom: 6
+  },
+  eventBoxMedal: {
+    fontSize: 16
   },
   eventBoxPlacement: {
     paddingHorizontal: 12,
@@ -385,7 +390,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
     letterSpacing: 0.5
   },
-  allAroundCard: {
+  teamTotalCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: 28,
     padding: 36,
@@ -398,7 +403,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.9)'
   },
-  allAroundHeader: {
+  teamTotalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -408,26 +413,26 @@ const styles = StyleSheet.create({
     fontSize: 28,
     opacity: 0.9
   },
-  allAroundLabel: {
+  teamTotalLabel: {
     fontSize: 24,
     fontWeight: '800',
     color: '#1A1A2E',
     letterSpacing: 2
   },
-  allAroundContent: {
+  teamTotalContent: {
     alignItems: 'center'
   },
-  allAroundValueWrapper: {
+  teamTotalValueWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20
   },
-  allAroundValue: {
+  teamTotalValue: {
     fontSize: 72,
     fontWeight: '900',
     letterSpacing: 1
   },
-  allAroundPlacementBadge: {
+  teamTotalPlacementBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -440,10 +445,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5
   },
-  allAroundPlacementEmoji: {
+  teamTotalPlacementEmoji: {
     fontSize: 32
   },
-  allAroundPlacementText: {
+  teamTotalPlacementText: {
     fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
@@ -451,6 +456,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
     letterSpacing: 1
+  },
+  countingScoreNote: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B6E80',
+    marginTop: 12,
+    fontStyle: 'italic'
   },
   branding: {
     fontSize: 16,

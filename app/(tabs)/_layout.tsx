@@ -4,9 +4,11 @@ import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function TabLayout() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <Tabs
@@ -33,31 +35,31 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Gymnasts',
-          headerTitle: 'My Gymnasts',
+          title: t('tabs.gymnasts'),
+          headerTitle: t('tabs.gymnasts'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="meets"
         options={{
-          title: 'Meets',
-          headerTitle: 'All Meets',
+          title: t('tabs.meets'),
+          headerTitle: t('tabs.meets'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
         name="teams"
         options={{
-          title: 'Teams',
-          headerTitle: 'Team Scores',
+          title: t('tabs.teams'),
+          headerTitle: t('tabs.teams'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.3.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('tabs.settings'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />

@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CARD_SHADOW, getCardBorder } from '@/constants/theme';
 import { getGymnasts, getMeets, getScores } from '@/utils/database';
 import { Gymnast, Meet, Score } from '@/types';
@@ -25,6 +26,7 @@ interface LevelDisciplineCombo {
 
 export default function TeamsScreen() {
   const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -413,7 +415,7 @@ export default function TeamsScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoIcon}>ℹ️</Text>
           <Text style={styles.infoText}>
-            Teams are automatically created from your gymnasts and scores by level and discipline
+            {t('teams.teamsInfo')}
           </Text>
         </View>
       )}
@@ -428,12 +430,12 @@ export default function TeamsScreen() {
             <Text style={styles.emptyIcon}>🏆</Text>
           </LinearGradient>
           <Text style={styles.emptyText}>
-            {allScores.length === 0 ? 'No Teams Yet' : `No Teams for ${selectedSeason}`}
+            {allScores.length === 0 || !selectedSeason ? t('teams.noTeams') : t('teams.noTeamsForSeason', { season: selectedSeason })}
           </Text>
           <Text style={styles.emptySubtext}>
-            {allScores.length === 0
-              ? 'Add gymnasts and scores to see team scores'
-              : 'Try selecting a different season or add scores for this season'
+            {allScores.length === 0 || !selectedSeason
+              ? t('teams.noTeamsSubtext')
+              : t('teams.noTeamsForSeasonSubtext')
             }
           </Text>
         </View>
@@ -451,7 +453,7 @@ export default function TeamsScreen() {
           {/* Women's Section */}
           {womensCombos.length > 0 && (
             <>
-              <Text style={[styles.sectionHeader, styles.firstSectionHeader]}>WOMEN'S ARTISTIC</Text>
+              <Text style={[styles.sectionHeader, styles.firstSectionHeader]}>{t('teams.womensArtistic')}</Text>
               {womensCombos.map((combo) => (
                 <View key={`${combo.level}-${combo.discipline}`} style={styles.teamCardWrapper}>
                   <TouchableOpacity
@@ -463,9 +465,9 @@ export default function TeamsScreen() {
                       end={{ x: 1, y: 1 }}
                       style={styles.teamCard}>
                       <View style={styles.teamInfo}>
-                        <Text style={styles.teamName}>{combo.level} - Women's</Text>
+                        <Text style={styles.teamName}>{combo.level} - {t('gymnasts.womens')}</Text>
                         <Text style={styles.teamMeta}>
-                          {combo.gymnastCount} {combo.gymnastCount === 1 ? 'gymnast' : 'gymnasts'} • {combo.meetCount} {combo.meetCount === 1 ? 'meet' : 'meets'}
+                          {combo.gymnastCount} {combo.gymnastCount === 1 ? t('teams.gymnast') : t('teams.gymnastsPlural')} • {combo.meetCount} {combo.meetCount === 1 ? t('gymnasts.meets') : t('gymnasts.meetsPlural')}
                         </Text>
                       </View>
                       <Text style={styles.chevron}>›</Text>
@@ -479,7 +481,7 @@ export default function TeamsScreen() {
           {/* Men's Section */}
           {mensCombos.length > 0 && (
             <>
-              <Text style={styles.sectionHeader}>MEN'S ARTISTIC</Text>
+              <Text style={styles.sectionHeader}>{t('teams.mensArtistic')}</Text>
               {mensCombos.map((combo) => (
                 <View key={`${combo.level}-${combo.discipline}`} style={styles.teamCardWrapper}>
                   <TouchableOpacity
@@ -491,9 +493,9 @@ export default function TeamsScreen() {
                       end={{ x: 1, y: 1 }}
                       style={styles.teamCard}>
                       <View style={styles.teamInfo}>
-                        <Text style={styles.teamName}>{combo.level} - Men's</Text>
+                        <Text style={styles.teamName}>{combo.level} - {t('gymnasts.mens')}</Text>
                         <Text style={styles.teamMeta}>
-                          {combo.gymnastCount} {combo.gymnastCount === 1 ? 'gymnast' : 'gymnasts'} • {combo.meetCount} {combo.meetCount === 1 ? 'meet' : 'meets'}
+                          {combo.gymnastCount} {combo.gymnastCount === 1 ? t('teams.gymnast') : t('teams.gymnastsPlural')} • {combo.meetCount} {combo.meetCount === 1 ? t('gymnasts.meets') : t('gymnasts.meetsPlural')}
                         </Text>
                       </View>
                       <Text style={styles.chevron}>›</Text>

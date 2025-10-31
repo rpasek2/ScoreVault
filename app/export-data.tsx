@@ -12,11 +12,13 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { exportAllData } from '@/utils/database';
 import { formatDate } from '@/utils/seasonUtils';
 
 export default function ExportDataScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const [exporting, setExporting] = useState(false);
 
   const convertToCSV = (headers: string[], rows: any[][]): string => {
@@ -68,7 +70,7 @@ export default function ExportDataScreen() {
             formatDate(new Date(g.createdAt.toMillis!()))
           ]);
           data = convertToCSV(
-            ['ID', 'Name', 'Date of Birth', 'USAG Number', 'Level', 'Discipline', 'Created At'],
+            [t('common.id'), t('common.name'), t('export.dateOfBirth'), t('export.usagNumber'), t('common.level'), t('export.discipline'), t('export.createdAt')],
             gymnastRows
           );
           mimeType = 'text/csv';
@@ -86,7 +88,7 @@ export default function ExportDataScreen() {
             formatDate(new Date(m.createdAt.toMillis!()))
           ]);
           data = convertToCSV(
-            ['ID', 'Name', 'Date', 'Season', 'Location', 'Created At'],
+            [t('common.id'), t('common.name'), t('meets.date'), t('export.season'), t('meets.location'), t('export.createdAt')],
             meetRows
           );
           mimeType = 'text/csv';
@@ -112,7 +114,7 @@ export default function ExportDataScreen() {
             formatDate(new Date(s.createdAt.toMillis!()))
           ]);
           data = convertToCSV(
-            ['ID', 'Gymnast ID', 'Meet ID', 'Level', 'Vault', 'Bars', 'Beam', 'Floor', 'Pommel Horse', 'Rings', 'Parallel Bars', 'High Bar', 'All-Around', 'Created At'],
+            [t('common.id'), t('export.gymnastId'), t('export.meetId'), t('common.level'), t('scores.vault'), t('scores.bars'), t('scores.beam'), t('scores.floor'), t('scores.pommelHorse'), t('scores.rings'), t('scores.parallelBars'), t('scores.highBar'), t('scores.allAround'), t('export.createdAt')],
             scoreRows
           );
           mimeType = 'text/csv';
@@ -192,12 +194,12 @@ export default function ExportDataScreen() {
 
           let teamHeaders: string[];
           if (hasMens && !hasWomens) {
-            teamHeaders = ['Level', 'Discipline', 'Meet', 'Date', 'Season', 'Gymnast', 'Floor', 'Pommel Horse', 'Rings', 'Vault', 'Parallel Bars', 'High Bar', 'All-Around'];
+            teamHeaders = [t('common.level'), t('export.discipline'), t('export.meet'), t('meets.date'), t('export.season'), t('scores.gymnast'), t('scores.floor'), t('scores.pommelHorse'), t('scores.rings'), t('scores.vault'), t('scores.parallelBars'), t('scores.highBar'), t('scores.allAround')];
           } else if (hasWomens && !hasMens) {
-            teamHeaders = ['Level', 'Discipline', 'Meet', 'Date', 'Season', 'Gymnast', 'Vault', 'Bars', 'Beam', 'Floor', 'All-Around'];
+            teamHeaders = [t('common.level'), t('export.discipline'), t('export.meet'), t('meets.date'), t('export.season'), t('scores.gymnast'), t('scores.vault'), t('scores.bars'), t('scores.beam'), t('scores.floor'), t('scores.allAround')];
           } else {
             // Mixed - use a generic header
-            teamHeaders = ['Level', 'Discipline', 'Meet', 'Date', 'Season', 'Gymnast', 'Event 1', 'Event 2', 'Event 3', 'Event 4', 'Event 5', 'Event 6', 'All-Around'];
+            teamHeaders = [t('common.level'), t('export.discipline'), t('export.meet'), t('meets.date'), t('export.season'), t('scores.gymnast'), t('export.event1'), t('export.event2'), t('export.event3'), t('export.event4'), t('export.event5'), t('export.event6'), t('scores.allAround')];
           }
 
           data = convertToCSV(teamHeaders, teamRows);
@@ -214,17 +216,17 @@ export default function ExportDataScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
           mimeType: mimeType,
-          dialogTitle: 'Export Data',
+          dialogTitle: t('export.exportData'),
           UTI: uti
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        Alert.alert('Success', `File saved to ${fileUri}`);
+        Alert.alert(t('common.success'), t('export.fileSavedTo', { path: fileUri }));
       }
     } catch (error: any) {
       console.error('Export error:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error.message || 'Failed to export data');
+      Alert.alert(t('common.error'), error.message || t('export.failedToExport'));
     } finally {
       setExporting(false);
     }
@@ -323,19 +325,19 @@ export default function ExportDataScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Export Data</Text>
+        <Text style={styles.title}>{t('export.exportData')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.description}>
-          Export your data to share with others or backup your information.
+          {t('export.description')}
         </Text>
 
         {/* JSON Export */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Complete Backup (JSON)</Text>
+          <Text style={styles.sectionTitle}>{t('export.completeBackup')}</Text>
           <Text style={styles.sectionDesc}>
-            Export all your data in JSON format. Includes gymnasts, meets, and scores with full details.
+            {t('export.jsonDescription')}
           </Text>
           <TouchableOpacity
             style={[styles.exportButton, exporting && styles.exportButtonDisabled]}
@@ -345,16 +347,16 @@ export default function ExportDataScreen() {
             {exporting ? (
               <ActivityIndicator color={theme.colors.surface} />
             ) : (
-              <Text style={styles.exportButtonText}>Export JSON</Text>
+              <Text style={styles.exportButtonText}>{t('export.exportJson')}</Text>
             )}
           </TouchableOpacity>
         </View>
 
         {/* CSV Exports */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spreadsheet Format (CSV)</Text>
+          <Text style={styles.sectionTitle}>{t('export.spreadsheetFormat')}</Text>
           <Text style={styles.sectionDesc}>
-            Export data to CSV files that can be opened in Excel, Google Sheets, or other spreadsheet applications.
+            {t('export.csvDescription')}
           </Text>
 
           <TouchableOpacity
@@ -362,7 +364,7 @@ export default function ExportDataScreen() {
             onPress={() => handleExport('csv-gymnasts')}
             disabled={exporting}
             activeOpacity={0.7}>
-            <Text style={styles.exportButtonTextSecondary}>Export Gymnasts (CSV)</Text>
+            <Text style={styles.exportButtonTextSecondary}>{t('export.exportGymnasts')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -370,7 +372,7 @@ export default function ExportDataScreen() {
             onPress={() => handleExport('csv-meets')}
             disabled={exporting}
             activeOpacity={0.7}>
-            <Text style={styles.exportButtonTextSecondary}>Export Meets (CSV)</Text>
+            <Text style={styles.exportButtonTextSecondary}>{t('export.exportMeets')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -378,7 +380,7 @@ export default function ExportDataScreen() {
             onPress={() => handleExport('csv-scores')}
             disabled={exporting}
             activeOpacity={0.7}>
-            <Text style={styles.exportButtonTextSecondary}>Export Scores (CSV)</Text>
+            <Text style={styles.exportButtonTextSecondary}>{t('export.exportScores')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -386,13 +388,13 @@ export default function ExportDataScreen() {
             onPress={() => handleExport('csv-team-scores')}
             disabled={exporting}
             activeOpacity={0.7}>
-            <Text style={styles.exportButtonTextSecondary}>Export Team Scores (CSV)</Text>
+            <Text style={styles.exportButtonTextSecondary}>{t('export.exportTeamScores')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            💡 Tip: After exporting, you can share the file via email, cloud storage, or any other app on your device.
+            {t('export.tip')}
           </Text>
         </View>
       </ScrollView>

@@ -14,6 +14,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Score, Gymnast } from '@/types';
 import { WOMENS_EVENTS, MENS_EVENTS, EVENT_LABELS } from '@/constants/theme';
 import { getScoreById, getGymnastById, updateScore, deleteScore } from '@/utils/database';
@@ -21,6 +22,7 @@ import { getScoreById, getGymnastById, updateScore, deleteScore } from '@/utils/
 export default function EditScoreScreen() {
   const { scoreId } = useLocalSearchParams<{ scoreId: string }>();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const [score, setScore] = useState<Score | null>(null);
   const [gymnastName, setGymnastName] = useState('');
   const [selectedDiscipline, setSelectedDiscipline] = useState<'Womens' | 'Mens'>('Womens');
@@ -103,12 +105,12 @@ export default function EditScoreScreen() {
             setAaPlace(scoreData.placements.allAround?.toString() || '');
           }
         } else {
-          Alert.alert('Error', 'Score not found');
+          Alert.alert(t('common.error'), t('scores.scoreNotFound'));
           router.back();
         }
       } catch (error) {
         console.error('Error fetching score:', error);
-        Alert.alert('Error', 'Failed to load score');
+        Alert.alert(t('common.error'), t('scores.failedToLoadScore'));
       } finally {
         setLoadingData(false);
       }
@@ -153,7 +155,7 @@ export default function EditScoreScreen() {
       // Check if at least one score is entered
       if (vaultNum === null && barsNum === null && beamNum === null && floorNum === null) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Please enter at least one score');
+        Alert.alert(t('common.error'), t('scores.enterAtLeastOneScore'));
         return;
       }
 
@@ -163,7 +165,7 @@ export default function EditScoreScreen() {
           (beamNum !== null && (beamNum < 0 || beamNum > 10)) ||
           (floorNum !== null && (floorNum < 0 || floorNum > 10))) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Scores must be between 0.000 and 10.000');
+        Alert.alert(t('common.error'), t('scores.womensScoreRange'));
         return;
       }
     } else {
@@ -179,7 +181,7 @@ export default function EditScoreScreen() {
       if (floorNum === null && pommelHorseNum === null && ringsNum === null &&
           vaultNum === null && parallelBarsNum === null && highBarNum === null) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Please enter at least one score');
+        Alert.alert(t('common.error'), t('scores.enterAtLeastOneScore'));
         return;
       }
 
@@ -191,7 +193,7 @@ export default function EditScoreScreen() {
           (parallelBarsNum !== null && (parallelBarsNum < 0 || parallelBarsNum > 15)) ||
           (highBarNum !== null && (highBarNum < 0 || highBarNum > 15))) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Scores must be between 0.000 and 15.000');
+        Alert.alert(t('common.error'), t('scores.mensScoreRange'));
         return;
       }
     }
@@ -235,7 +237,7 @@ export default function EditScoreScreen() {
       router.back();
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
       setLoading(false);
     }
   };
@@ -243,16 +245,16 @@ export default function EditScoreScreen() {
   const handleDelete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Delete Score',
-      `Are you sure you want to delete this score for ${gymnastName}?`,
+      t('scores.deleteScore'),
+      t('scores.deleteScoreConfirm', { name: gymnastName }),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -262,7 +264,7 @@ export default function EditScoreScreen() {
               router.back();
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Error', error.message);
+              Alert.alert(t('common.error'), error.message);
             }
           }
         }
@@ -409,14 +411,14 @@ export default function EditScoreScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} disabled={loading}>
-          <Text style={[styles.cancelButton, loading && styles.disabled]}>Cancel</Text>
+          <Text style={[styles.cancelButton, loading && styles.disabled]}>{t('common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Score</Text>
+        <Text style={styles.title}>{t('scores.editScore')}</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#4A90E2" />
           ) : (
-            <Text style={styles.saveButton}>Save</Text>
+            <Text style={styles.saveButton}>{t('common.save')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -426,13 +428,13 @@ export default function EditScoreScreen() {
         keyboardShouldPersistTaps="handled">
         {/* Gymnast Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gymnast</Text>
+          <Text style={styles.sectionTitle}>{t('scores.gymnast')}</Text>
           <Text style={styles.gymnastNameText}>{gymnastName}</Text>
         </View>
 
         {/* Scores Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Scores</Text>
+          <Text style={styles.sectionTitle}>{t('scores.scores')}</Text>
 
           {selectedDiscipline === 'Womens' ? (
             <>
@@ -440,7 +442,7 @@ export default function EditScoreScreen() {
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Vault <Text style={styles.required}>*</Text>
+                    {t('scores.vault')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -454,7 +456,7 @@ export default function EditScoreScreen() {
 
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Bars <Text style={styles.required}>*</Text>
+                    {t('scores.bars')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -470,7 +472,7 @@ export default function EditScoreScreen() {
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Beam <Text style={styles.required}>*</Text>
+                    {t('scores.beam')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -484,7 +486,7 @@ export default function EditScoreScreen() {
 
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Floor <Text style={styles.required}>*</Text>
+                    {t('scores.floor')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -503,7 +505,7 @@ export default function EditScoreScreen() {
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Floor <Text style={styles.required}>*</Text>
+                    {t('scores.floor')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -517,7 +519,7 @@ export default function EditScoreScreen() {
 
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Pommel Horse <Text style={styles.required}>*</Text>
+                    {t('scores.pommelHorse')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -533,7 +535,7 @@ export default function EditScoreScreen() {
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Rings <Text style={styles.required}>*</Text>
+                    {t('scores.rings')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -547,7 +549,7 @@ export default function EditScoreScreen() {
 
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Vault <Text style={styles.required}>*</Text>
+                    {t('scores.vault')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -563,7 +565,7 @@ export default function EditScoreScreen() {
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    Parallel Bars <Text style={styles.required}>*</Text>
+                    {t('scores.parallelBars')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -577,7 +579,7 @@ export default function EditScoreScreen() {
 
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.label}>
-                    High Bar <Text style={styles.required}>*</Text>
+                    {t('scores.highBar')} <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.input}
@@ -593,21 +595,21 @@ export default function EditScoreScreen() {
           )}
 
           <View style={styles.allAroundBox}>
-            <Text style={styles.allAroundLabel}>All-Around</Text>
+            <Text style={styles.allAroundLabel}>{t('scores.allAround')}</Text>
             <Text style={styles.allAroundValue}>{allAround}</Text>
           </View>
         </View>
 
         {/* Placements Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Placements (Optional)</Text>
+          <Text style={styles.sectionTitle}>{t('scores.placementsOptional')}</Text>
 
           {selectedDiscipline === 'Womens' ? (
             <>
               {/* Womens Placements: Vault, Bars, Beam, Floor */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Vault Place</Text>
+                  <Text style={styles.label}>{t('scores.vaultPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -620,7 +622,7 @@ export default function EditScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Bars Place</Text>
+                  <Text style={styles.label}>{t('scores.barsPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -635,7 +637,7 @@ export default function EditScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Beam Place</Text>
+                  <Text style={styles.label}>{t('scores.beamPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -648,7 +650,7 @@ export default function EditScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Floor Place</Text>
+                  <Text style={styles.label}>{t('scores.floorPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -666,7 +668,7 @@ export default function EditScoreScreen() {
               {/* Mens Placements: Floor, Pommel Horse, Rings, Vault, Parallel Bars, High Bar */}
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Floor Place</Text>
+                  <Text style={styles.label}>{t('scores.floorPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -679,7 +681,7 @@ export default function EditScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Pommel Horse Place</Text>
+                  <Text style={styles.label}>{t('scores.pommelHorsePlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -694,7 +696,7 @@ export default function EditScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Rings Place</Text>
+                  <Text style={styles.label}>{t('scores.ringsPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -707,7 +709,7 @@ export default function EditScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Vault Place</Text>
+                  <Text style={styles.label}>{t('scores.vaultPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -722,7 +724,7 @@ export default function EditScoreScreen() {
 
               <View style={styles.row}>
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>Parallel Bars Place</Text>
+                  <Text style={styles.label}>{t('scores.parallelBarsPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -735,7 +737,7 @@ export default function EditScoreScreen() {
                 </View>
 
                 <View style={styles.inputGroupHalf}>
-                  <Text style={styles.label}>High Bar Place</Text>
+                  <Text style={styles.label}>{t('scores.highBarPlace')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder=""
@@ -751,7 +753,7 @@ export default function EditScoreScreen() {
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>All-Around Place</Text>
+            <Text style={styles.label}>{t('scores.allAroundPlace')}</Text>
             <TextInput
               style={styles.input}
               placeholder=""
@@ -770,7 +772,7 @@ export default function EditScoreScreen() {
           onPress={handleDelete}
           disabled={loading}
           activeOpacity={0.7}>
-          <Text style={styles.deleteButtonText}>Delete Score</Text>
+          <Text style={styles.deleteButtonText}>{t('scores.deleteScore')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

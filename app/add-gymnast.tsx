@@ -9,13 +9,17 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
-import { UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { UI_PALETTE, CARD_SHADOW, getInitials } from '@/constants/theme';
 import { addGymnast } from '@/utils/database';
 
 const LEVEL_OPTIONS = [
@@ -45,8 +49,10 @@ export default function AddGymnastScreen() {
   const [discipline, setDiscipline] = useState<'Womens' | 'Mens'>('Womens');
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const styles = StyleSheet.create({
@@ -171,22 +177,72 @@ export default function AddGymnastScreen() {
       fontWeight: '700',
       color: '#FFFFFF',
       letterSpacing: 0.5
+    },
+    photoSection: {
+      alignItems: 'center',
+      marginBottom: 24
+    },
+    photoContainer: {
+      position: 'relative',
+      marginBottom: 12
+    },
+    photoAvatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...CARD_SHADOW
+    },
+    photoImage: {
+      width: 100,
+      height: 100,
+      borderRadius: 50
+    },
+    photoAvatarText: {
+      fontSize: 40,
+      color: '#FFFFFF',
+      fontWeight: '700'
+    },
+    photoButton: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...CARD_SHADOW
+    },
+    photoButtonText: {
+      fontSize: 20,
+      color: '#FFFFFF'
+    },
+    removePhotoButton: {
+      padding: 8
+    },
+    removePhotoText: {
+      fontSize: 12,
+      color: theme.colors.error,
+      fontWeight: '600'
     }
   });
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a gymnast name');
+      Alert.alert(t('common.error'), t('gymnasts.enterName'));
       return;
     }
 
     if (name.trim().length < 2) {
-      Alert.alert('Error', 'Name must be at least 2 characters');
+      Alert.alert(t('common.error'), t('gymnasts.nameMinLength'));
       return;
     }
 
     if (!level) {
-      Alert.alert('Error', 'Please select a level');
+      Alert.alert(t('common.error'), t('gymnasts.selectLevel'));
       return;
     }
 
@@ -197,14 +253,52 @@ export default function AddGymnastScreen() {
         usagNumber: usagNumber.trim() || undefined,
         level: level,
         discipline: discipline,
-        dateOfBirth: dateOfBirth ? { toMillis: () => dateOfBirth.getTime() } : undefined
+        dateOfBirth: dateOfBirth ? { toMillis: () => dateOfBirth.getTime() } : undefined,
+        photoUri: photoUri
       });
 
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
       setLoading(false);
     }
+  };
+
+  const pickImage = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          t('common.permissionRequired'),
+          t('common.grantPhotoAccess'),
+          [{ text: t('common.ok') }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert(t('common.error'), t('common.failedToPickImage'));
+    }
+  };
+
+  const removePhoto = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setPhotoUri(undefined);
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -230,9 +324,9 @@ export default function AddGymnastScreen() {
         colors={theme.colors.headerGradient}
         style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} disabled={loading}>
-          <Text style={[styles.cancelButton, loading && styles.disabled]}>Cancel</Text>
+          <Text style={[styles.cancelButton, loading && styles.disabled]}>{t('common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Add Gymnast</Text>
+        <Text style={styles.title}>{t('gymnasts.addGymnast')}</Text>
         <View style={{ width: 50 }} />
       </LinearGradient>
 
@@ -240,13 +334,43 @@ export default function AddGymnastScreen() {
         <LinearGradient
           colors={theme.colors.cardGradient}
           style={styles.form}>
+          {/* Photo Section */}
+          <View style={styles.photoSection}>
+            <View style={styles.photoContainer}>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.photoImage} />
+              ) : (
+                <LinearGradient
+                  colors={theme.colors.avatarGradient}
+                  style={styles.photoAvatar}>
+                  <Text style={styles.photoAvatarText}>{getInitials(name || 'Gymnast')}</Text>
+                </LinearGradient>
+              )}
+              <TouchableOpacity
+                style={styles.photoButton}
+                onPress={pickImage}
+                disabled={loading}
+                activeOpacity={0.7}>
+                <Text style={styles.photoButtonText}>📷</Text>
+              </TouchableOpacity>
+            </View>
+            {photoUri && (
+              <TouchableOpacity
+                onPress={removePhoto}
+                style={styles.removePhotoButton}
+                disabled={loading}>
+                <Text style={styles.removePhotoText}>{t('common.removePhoto')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              Gymnast Name <Text style={styles.required}>*</Text>
+              {t('gymnasts.gymnastName')} <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter name"
+              placeholder={t('gymnasts.enterName')}
               placeholderTextColor={theme.colors.textTertiary}
               value={name}
               onChangeText={setName}
@@ -256,13 +380,13 @@ export default function AddGymnastScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Date of Birth (Optional)</Text>
+            <Text style={styles.label}>{t('gymnasts.dateOfBirth')}</Text>
             <TouchableOpacity
               style={styles.dateInput}
               onPress={() => setShowDatePicker(true)}
               disabled={loading}>
               <Text style={dateOfBirth ? styles.dateText : styles.datePlaceholder}>
-                {dateOfBirth ? formatDate(dateOfBirth) : 'Select date of birth'}
+                {dateOfBirth ? formatDate(dateOfBirth) : t('gymnasts.selectDateOfBirth')}
               </Text>
             </TouchableOpacity>
             {showDatePicker && (
@@ -277,10 +401,10 @@ export default function AddGymnastScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>USAG Number (Optional)</Text>
+            <Text style={styles.label}>{t('gymnasts.usagNumber')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter USAG number"
+              placeholder={t('gymnasts.enterUsagNumber')}
               placeholderTextColor={theme.colors.textTertiary}
               value={usagNumber}
               onChangeText={setUsagNumber}
@@ -291,7 +415,7 @@ export default function AddGymnastScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              Discipline <Text style={styles.required}>*</Text>
+              {t('gymnasts.discipline')} <Text style={styles.required}>*</Text>
             </Text>
             <View style={styles.levelGrid}>
               <TouchableOpacity
@@ -306,7 +430,7 @@ export default function AddGymnastScreen() {
                     styles.levelOptionText,
                     discipline === 'Womens' && styles.levelOptionTextSelected
                   ]}>
-                  Womens
+                  {t('gymnasts.womens')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -321,7 +445,7 @@ export default function AddGymnastScreen() {
                     styles.levelOptionText,
                     discipline === 'Mens' && styles.levelOptionTextSelected
                   ]}>
-                  Mens
+                  {t('gymnasts.mens')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -329,7 +453,7 @@ export default function AddGymnastScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              Level <Text style={styles.required}>*</Text>
+              {t('gymnasts.level')} <Text style={styles.required}>*</Text>
             </Text>
             <View style={styles.levelGrid}>
               {LEVEL_OPTIONS.map((levelOption) => (
@@ -351,7 +475,7 @@ export default function AddGymnastScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.hint}>You can update level later as they progress</Text>
+            <Text style={styles.hint}>{t('gymnasts.updateLevelLater')}</Text>
           </View>
         </LinearGradient>
 
@@ -369,7 +493,7 @@ export default function AddGymnastScreen() {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>Save Gymnast</Text>
+              <Text style={styles.saveButtonText}>{t('gymnasts.saveGymnast')}</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>

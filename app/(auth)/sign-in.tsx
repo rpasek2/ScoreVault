@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export default function SignInScreen() {
@@ -25,19 +26,20 @@ export default function SignInScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { signIn, signUp } = useAuth();
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   const handleAuth = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (!email || !password) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert(t('common.error'), t('auth.invalidEmail'));
       return;
     }
 
     if (password.length < 6) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t('common.error'), t('auth.passwordTooShort'));
       return;
     }
 
@@ -51,7 +53,7 @@ export default function SignInScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }
@@ -61,20 +63,20 @@ export default function SignInScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (!email) {
-      Alert.alert('Email Required', 'Please enter your email address to reset your password');
+      Alert.alert(t('common.error'), t('auth.invalidEmail'));
       return;
     }
 
     Alert.alert(
-      'Reset Password',
-      `Send password reset email to ${email}?`,
+      t('auth.resetPassword'),
+      `${t('auth.resetPassword')} ${email}?`,
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel'
         },
         {
-          text: 'Send',
+          text: t('common.confirm'),
           onPress: async () => {
             setLoading(true);
             try {
@@ -82,22 +84,12 @@ export default function SignInScreen() {
               await sendPasswordResetEmail(auth, email);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert(
-                'Email Sent',
-                `A password reset link has been sent to ${email}. Please check your inbox and spam folder.`
+                t('common.success'),
+                t('auth.resetPasswordSuccess')
               );
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              let errorMessage = 'Failed to send reset email';
-
-              if (error.code === 'auth/user-not-found') {
-                errorMessage = 'No account found with this email address';
-              } else if (error.code === 'auth/invalid-email') {
-                errorMessage = 'Invalid email address';
-              } else if (error.code === 'auth/too-many-requests') {
-                errorMessage = 'Too many requests. Please try again later';
-              }
-
-              Alert.alert('Error', errorMessage);
+              Alert.alert(t('common.error'), t('auth.resetPasswordError'));
             } finally {
               setLoading(false);
             }
@@ -265,20 +257,20 @@ export default function SignInScreen() {
 
         {/* Form Card */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
+          <Text style={styles.formTitle}>{isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}</Text>
           <Text style={styles.formSubtitle}>
-            {isSignUp ? 'Sign up to start tracking scores' : 'Sign in to your account'}
+            {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
           </Text>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email</Text>
+              <Text style={styles.inputLabel}>{t('auth.email')}</Text>
               <TextInput
                 style={[
                   styles.input,
                   emailFocused && styles.inputFocused
                 ]}
-                placeholder="your@email.com"
+                placeholder={t('auth.enterEmail')}
                 placeholderTextColor="#A0A3B1"
                 value={email}
                 onChangeText={setEmail}
@@ -292,13 +284,13 @@ export default function SignInScreen() {
 
             <View style={styles.inputGroup}>
               <View style={styles.passwordHeader}>
-                <Text style={styles.inputLabel}>Password</Text>
+                <Text style={styles.inputLabel}>{t('auth.password')}</Text>
                 {!isSignUp && (
                   <TouchableOpacity
                     onPress={handleForgotPassword}
                     disabled={loading}
                     activeOpacity={0.7}>
-                    <Text style={styles.forgotPasswordText}>Forgot?</Text>
+                    <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -307,7 +299,7 @@ export default function SignInScreen() {
                   styles.input,
                   passwordFocused && styles.inputFocused
                 ]}
-                placeholder="Enter your password"
+                placeholder={t('auth.enterPassword')}
                 placeholderTextColor="#A0A3B1"
                 value={password}
                 onChangeText={setPassword}
@@ -332,7 +324,7 @@ export default function SignInScreen() {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.buttonText}>
-                    {isSignUp ? 'Create Account' : 'Sign In'}
+                    {isSignUp ? t('auth.signUp') : t('auth.signIn')}
                   </Text>
                 )}
               </LinearGradient>
@@ -346,9 +338,10 @@ export default function SignInScreen() {
               }}
               disabled={loading}>
               <Text style={styles.switchText}>
-                {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
+                {' '}
                 <Text style={styles.switchTextBold}>
-                  {isSignUp ? 'Sign In' : 'Sign Up'}
+                  {isSignUp ? t('auth.signIn') : t('auth.signUp')}
                 </Text>
               </Text>
             </TouchableOpacity>

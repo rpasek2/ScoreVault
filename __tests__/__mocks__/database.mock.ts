@@ -6,6 +6,7 @@ export class MockDatabase {
     this.tables.set('gymnasts', new Map());
     this.tables.set('meets', new Map());
     this.tables.set('scores', new Map());
+    this.tables.set('team_placements', new Map());
   }
 
   async execAsync(sql: string): Promise<void> {
@@ -15,7 +16,7 @@ export class MockDatabase {
 
   async runAsync(sql: string, params: any[] = []): Promise<{ lastInsertRowId: number; changes: number }> {
     const insertMatch = sql.match(/INSERT INTO (\w+)/i);
-    const updateMatch = sql.match(/UPDATE (\w+) SET (.+?) WHERE/i);
+    const updateMatch = sql.match(/UPDATE\s+(\w+)\s+SET\s+([\s\S]+?)\s+WHERE/i);
     const deleteMatch = sql.match(/DELETE FROM (\w+)/i);
 
     if (insertMatch) {
@@ -64,6 +65,20 @@ export class MockDatabase {
           row.highBarPlacement = params[20];
           row.allAroundPlacement = params[21];
           row.createdAt = params[22];
+        } else if (tableName === 'team_placements') {
+          row.meetId = params[1];
+          row.level = params[2];
+          row.discipline = params[3];
+          row.vaultPlacement = params[4];
+          row.barsPlacement = params[5];
+          row.beamPlacement = params[6];
+          row.floorPlacement = params[7];
+          row.pommelHorsePlacement = params[8];
+          row.ringsPlacement = params[9];
+          row.parallelBarsPlacement = params[10];
+          row.highBarPlacement = params[11];
+          row.allAroundPlacement = params[12];
+          row.createdAt = params[13];
         }
 
         table.set(id, row);
@@ -82,23 +97,36 @@ export class MockDatabase {
       if (table && id) {
         const existingRow = table.get(id);
         if (existingRow) {
-          // Parse SET clause to handle both hardcoded values and placeholders
-          const assignments = setClause.split(',').map(s => s.trim());
-          let paramIndex = 0;
+          // Special handling for team_placements
+          if (tableName === 'team_placements') {
+            existingRow.vaultPlacement = params[0];
+            existingRow.barsPlacement = params[1];
+            existingRow.beamPlacement = params[2];
+            existingRow.floorPlacement = params[3];
+            existingRow.pommelHorsePlacement = params[4];
+            existingRow.ringsPlacement = params[5];
+            existingRow.parallelBarsPlacement = params[6];
+            existingRow.highBarPlacement = params[7];
+            existingRow.allAroundPlacement = params[8];
+          } else {
+            // Parse SET clause to handle both hardcoded values and placeholders
+            const assignments = setClause.split(',').map(s => s.trim());
+            let paramIndex = 0;
 
-          assignments.forEach(assignment => {
-            const [field, value] = assignment.split('=').map(s => s.trim());
+            assignments.forEach(assignment => {
+              const [field, value] = assignment.split('=').map(s => s.trim());
 
-            if (value === '?') {
-              // Value is a placeholder, use param
-              existingRow[field] = params[paramIndex++];
-            } else {
-              // Value is hardcoded in SQL
-              // Try to parse as number or keep as string
-              const numValue = Number(value);
-              existingRow[field] = isNaN(numValue) ? value.replace(/['"]/g, '') : numValue;
-            }
-          });
+              if (value === '?') {
+                // Value is a placeholder, use param
+                existingRow[field] = params[paramIndex++];
+              } else {
+                // Value is hardcoded in SQL
+                // Try to parse as number or keep as string
+                const numValue = Number(value);
+                existingRow[field] = isNaN(numValue) ? value.replace(/['"]/g, '') : numValue;
+              }
+            });
+          }
 
           table.set(id, existingRow);
         }
@@ -135,7 +163,14 @@ export class MockDatabase {
 
       // Handle parameterized conditions
       if (params.length > 0) {
-        if (condition.includes('id = ?')) {
+        // Handle team_placements multi-condition: meetId = ? AND level = ? AND discipline = ?
+        if (condition.includes('meetId = ? AND level = ? AND discipline = ?')) {
+          rows = rows.filter(row =>
+            row.meetId === params[0] &&
+            row.level === params[1] &&
+            row.discipline === params[2]
+          );
+        } else if (condition.includes('id = ?')) {
           rows = rows.filter(row => row.id === params[0]);
         } else if (condition.includes('gymnastId = ?')) {
           rows = rows.filter(row => row.gymnastId === params[0]);
