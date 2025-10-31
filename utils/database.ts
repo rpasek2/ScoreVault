@@ -5,36 +5,159 @@ import { Gymnast, Meet, Score, TeamPlacement } from '@/types';
 import { db as firestore } from '@/config/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
-// Open database
-const db = SQLite.openDatabaseSync('scorevault.db');
+// Current database instance
+let db: SQLite.SQLiteDatabase | null = null;
+let currentUserId: string | null = null;
 
 // Track if database has been initialized
 let isInitialized = false;
+let isInitializing = false; // Lock to prevent concurrent operations
 
-// Helper function to check if a column exists in a table
-const columnExists = async (tableName: string, columnName: string): Promise<boolean> => {
+// Get database name for a user
+const getDatabaseName = (userId: string | null): string => {
+  if (!userId) {
+    return 'scorevault.db'; // Fallback for no user
+  }
+  return `scorevault_user_${userId}.db`;
+};
+
+// Get current database instance
+const getDb = (): SQLite.SQLiteDatabase => {
+  if (!db) {
+    throw new Error('Database not initialized. Call initDatabase first.');
+  }
+  return db;
+};
+
+// Switch to a different user's database
+export const switchDatabase = async (userId: string | null) => {
+  const newDbName = getDatabaseName(userId);
+  const oldDbName = db ? getDatabaseName(currentUserId) : null;
+
+  // If switching to the same database, do nothing
+  if (oldDbName === newDbName && db && isInitialized) {
+    console.log('Already using database:', newDbName);
+    return;
+  }
+
+  // Wait for any pending initialization to finish
+  while (isInitializing) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+
+  console.log('Switching database from', oldDbName, 'to', newDbName);
+
+  // Reset all state
+  db = null;
+  currentUserId = null;
+  isInitialized = false;
+
+  // Initialize from scratch with the new userId
   try {
-    const result = await db.getAllAsync<{ name: string }>(
-      `PRAGMA table_info(${tableName})`
-    );
-    return result.some(col => col.name === columnName);
+    await initDatabase(userId);
+    console.log('Database switched to:', newDbName);
   } catch (error) {
-    console.error(`Error checking column ${columnName}:`, error);
-    return false;
+    console.error('Error switching database:', error);
+    throw error;
+  }
+};
+
+// Migrate data from old database to user-specific database
+export const migrateToUserDatabase = async (userId: string) => {
+  const oldDbName = 'scorevault.db';
+  const newDbName = getDatabaseName(userId);
+
+  try {
+    // Check if old database exists and has data
+    const oldDb = SQLite.openDatabaseSync(oldDbName);
+    const tables = await oldDb.getAllAsync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('gymnasts', 'meets', 'scores', 'team_placements')"
+    );
+
+    if (tables.length === 0) {
+      console.log('No data to migrate');
+      oldDb.closeSync();
+      return;
+    }
+
+    // Open new database (should already be initialized by switchDatabase)
+    const newDb = SQLite.openDatabaseSync(newDbName);
+
+    // Check if new database already has data
+    const gymnastCount = await newDb.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM gymnasts');
+
+    if (gymnastCount && gymnastCount.count > 0) {
+      console.log('User database already has data, skipping migration');
+      oldDb.closeSync();
+      newDb.closeSync();
+      return;
+    }
+
+    console.log('Migrating data from', oldDbName, 'to', newDbName);
+
+    // Copy all tables
+    const tablesToMigrate = ['gymnasts', 'meets', 'scores', 'team_placements', 'user_profile'];
+
+    for (const table of tablesToMigrate) {
+      try {
+        const rows = await oldDb.getAllAsync(`SELECT * FROM ${table}`);
+        if (rows.length > 0) {
+          // Get column names
+          const columns = Object.keys(rows[0] as Record<string, any>);
+          const placeholders = columns.map(() => '?').join(',');
+          const columnNames = columns.join(',');
+
+          // Insert each row
+          for (const row of rows) {
+            const values = columns.map(col => (row as any)[col]);
+            await newDb.runAsync(
+              `INSERT OR REPLACE INTO ${table} (${columnNames}) VALUES (${placeholders})`,
+              values
+            );
+          }
+          console.log(`Migrated ${rows.length} rows from ${table}`);
+        }
+      } catch (error) {
+        console.log(`Skipping table ${table}:`, error);
+      }
+    }
+
+    console.log('Migration completed successfully');
+    oldDb.closeSync();
+    newDb.closeSync();
+  } catch (error) {
+    console.error('Error during migration:', error);
   }
 };
 
 // Initialize database tables
-export const initDatabase = async () => {
-  // Prevent multiple initializations
-  if (isInitialized) {
+export const initDatabase = async (userId: string | null = null) => {
+  // Wait for any pending initialization to finish
+  while (isInitializing) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+
+  // If already initialized, do nothing
+  if (db && isInitialized) {
     console.log('Database already initialized, skipping');
     return;
   }
 
+  // Set the lock
+  isInitializing = true;
+
   try {
+    const dbName = getDatabaseName(userId);
+    console.log('Opening database:', dbName);
+
+    // Use a LOCAL variable for all initialization
+    // This prevents race conditions where db could be set to null mid-initialization
+    const localDb = SQLite.openDatabaseSync(dbName);
+
+    // --- CRITICAL SECTION: All initialization happens on localDb ---
+
     // Create gymnasts table
-    await db.execAsync(`
+    await localDb.execAsync(`
       CREATE TABLE IF NOT EXISTS gymnasts (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -50,17 +173,29 @@ export const initDatabase = async () => {
     `);
 
     // Add isHidden column if it doesn't exist (for existing databases)
-    if (!(await columnExists('gymnasts', 'isHidden'))) {
-      await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
+    try {
+      const result = await localDb.getAllAsync<{ name: string }>(`PRAGMA table_info(gymnasts)`);
+      const hasIsHidden = result.some(col => col.name === 'isHidden');
+      if (!hasIsHidden) {
+        await localDb.execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
+      }
+    } catch (error) {
+      console.error('Error checking isHidden column:', error);
     }
 
     // Add photoUri column if it doesn't exist (for existing databases)
-    if (!(await columnExists('gymnasts', 'photoUri'))) {
-      await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN photoUri TEXT`);
+    try {
+      const result = await localDb.getAllAsync<{ name: string }>(`PRAGMA table_info(gymnasts)`);
+      const hasPhotoUri = result.some(col => col.name === 'photoUri');
+      if (!hasPhotoUri) {
+        await localDb.execAsync(`ALTER TABLE gymnasts ADD COLUMN photoUri TEXT`);
+      }
+    } catch (error) {
+      console.error('Error checking photoUri column:', error);
     }
 
     // Create meets table
-    await db.execAsync(`
+    await localDb.execAsync(`
       CREATE TABLE IF NOT EXISTS meets (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -74,7 +209,7 @@ export const initDatabase = async () => {
     `);
 
     // Create scores table
-    await db.execAsync(`
+    await localDb.execAsync(`
       CREATE TABLE IF NOT EXISTS scores (
         id TEXT PRIMARY KEY,
         meetId TEXT NOT NULL,
@@ -107,7 +242,7 @@ export const initDatabase = async () => {
     `);
 
     // Create team_placements table
-    await db.execAsync(`
+    await localDb.execAsync(`
       CREATE TABLE IF NOT EXISTS team_placements (
         id TEXT PRIMARY KEY,
         meetId TEXT NOT NULL,
@@ -130,12 +265,20 @@ export const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_team_placements_level ON team_placements(level);
     `);
 
-    // Mark as initialized
+    // --- END CRITICAL SECTION ---
+
+    // ONLY set the global variables at the very end when everything is 100% ready
+    db = localDb;
+    currentUserId = userId;
     isInitialized = true;
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
+  } finally {
+    // Release the lock no matter what
+    isInitializing = false;
   }
 };
 
@@ -160,7 +303,7 @@ export const addGymnast = async (data: Omit<Gymnast, 'id' | 'createdAt' | 'userI
   const createdAt = Date.now();
   const dateOfBirth = data.dateOfBirth ? timestampToMs(data.dateOfBirth) : null;
 
-  await db.runAsync(
+  await getDb().runAsync(
     `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, photoUri, isHidden, createdAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, data.name, dateOfBirth, data.usagNumber || null, data.level, data.discipline, data.photoUri || null, 0, createdAt]
@@ -177,11 +320,11 @@ export const getGymnasts = async (includeHidden: boolean = false): Promise<Gymna
       ? 'SELECT * FROM gymnasts ORDER BY createdAt DESC'
       : 'SELECT * FROM gymnasts WHERE isHidden = 0 ORDER BY createdAt DESC';
 
-    result = await db.getAllAsync<any>(query);
+    result = await getDb().getAllAsync<any>(query);
   } catch (error) {
     // Column might not exist yet - fall back to getting all gymnasts
     console.log('isHidden column not found, fetching all gymnasts');
-    result = await db.getAllAsync<any>('SELECT * FROM gymnasts ORDER BY createdAt DESC');
+    result = await getDb().getAllAsync<any>('SELECT * FROM gymnasts ORDER BY createdAt DESC');
   }
 
   return result.map(row => ({
@@ -199,7 +342,7 @@ export const getGymnasts = async (includeHidden: boolean = false): Promise<Gymna
 };
 
 export const getGymnastById = async (id: string): Promise<Gymnast | null> => {
-  const result = await db.getFirstAsync<any>('SELECT * FROM gymnasts WHERE id = ?', [id]);
+  const result = await getDb().getFirstAsync<any>('SELECT * FROM gymnasts WHERE id = ?', [id]);
 
   if (!result) return null;
 
@@ -219,12 +362,12 @@ export const getGymnastById = async (id: string): Promise<Gymnast | null> => {
 
 export const hideGymnast = async (id: string): Promise<void> => {
   try {
-    await db.runAsync('UPDATE gymnasts SET isHidden = 1 WHERE id = ?', [id]);
+    await getDb().runAsync('UPDATE gymnasts SET isHidden = 1 WHERE id = ?', [id]);
   } catch (error) {
     // Column might not exist - try to add it first
     try {
-      await db.execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
-      await db.runAsync('UPDATE gymnasts SET isHidden = 1 WHERE id = ?', [id]);
+      await getDb().execAsync(`ALTER TABLE gymnasts ADD COLUMN isHidden INTEGER DEFAULT 0`);
+      await getDb().runAsync('UPDATE gymnasts SET isHidden = 1 WHERE id = ?', [id]);
     } catch (e) {
       throw new Error('Failed to hide gymnast. Please restart the app and try again.');
     }
@@ -233,7 +376,7 @@ export const hideGymnast = async (id: string): Promise<void> => {
 
 export const unhideGymnast = async (id: string): Promise<void> => {
   try {
-    await db.runAsync('UPDATE gymnasts SET isHidden = 0 WHERE id = ?', [id]);
+    await getDb().runAsync('UPDATE gymnasts SET isHidden = 0 WHERE id = ?', [id]);
   } catch (error) {
     throw new Error('Failed to unhide gymnast. Please restart the app and try again.');
   }
@@ -241,7 +384,7 @@ export const unhideGymnast = async (id: string): Promise<void> => {
 
 export const getHiddenGymnasts = async (): Promise<Gymnast[]> => {
   try {
-    const result = await db.getAllAsync<any>('SELECT * FROM gymnasts WHERE isHidden = 1 ORDER BY createdAt DESC');
+    const result = await getDb().getAllAsync<any>('SELECT * FROM gymnasts WHERE isHidden = 1 ORDER BY createdAt DESC');
 
     return result.map(row => ({
       id: row.id,
@@ -294,7 +437,7 @@ export const updateGymnast = async (id: string, data: Partial<Omit<Gymnast, 'id'
   if (updates.length === 0) return;
 
   values.push(id);
-  await db.runAsync(
+  await getDb().runAsync(
     `UPDATE gymnasts SET ${updates.join(', ')} WHERE id = ?`,
     values
   );
@@ -302,7 +445,7 @@ export const updateGymnast = async (id: string, data: Partial<Omit<Gymnast, 'id'
 
 export const deleteGymnast = async (id: string): Promise<void> => {
   // Delete gymnast (scores will be cascade deleted)
-  await db.runAsync('DELETE FROM gymnasts WHERE id = ?', [id]);
+  await getDb().runAsync('DELETE FROM gymnasts WHERE id = ?', [id]);
 };
 
 // ========== MEET OPERATIONS ==========
@@ -312,7 +455,7 @@ export const addMeet = async (data: Omit<Meet, 'id' | 'createdAt' | 'userId'>): 
   const createdAt = Date.now();
   const date = timestampToMs(data.date);
 
-  await db.runAsync(
+  await getDb().runAsync(
     `INSERT INTO meets (id, name, date, season, location, createdAt)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [id, data.name, date, data.season, data.location || null, createdAt]
@@ -322,7 +465,7 @@ export const addMeet = async (data: Omit<Meet, 'id' | 'createdAt' | 'userId'>): 
 };
 
 export const getMeets = async (): Promise<Meet[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM meets ORDER BY date DESC');
+  const result = await getDb().getAllAsync<any>('SELECT * FROM meets ORDER BY date DESC');
 
   return result.map(row => ({
     id: row.id,
@@ -336,7 +479,7 @@ export const getMeets = async (): Promise<Meet[]> => {
 };
 
 export const getMeetById = async (id: string): Promise<Meet | null> => {
-  const result = await db.getFirstAsync<any>('SELECT * FROM meets WHERE id = ?', [id]);
+  const result = await getDb().getFirstAsync<any>('SELECT * FROM meets WHERE id = ?', [id]);
 
   if (!result) return null;
 
@@ -375,7 +518,7 @@ export const updateMeet = async (id: string, data: Partial<Omit<Meet, 'id' | 'us
   if (updates.length === 0) return;
 
   values.push(id);
-  await db.runAsync(
+  await getDb().runAsync(
     `UPDATE meets SET ${updates.join(', ')} WHERE id = ?`,
     values
   );
@@ -383,7 +526,7 @@ export const updateMeet = async (id: string, data: Partial<Omit<Meet, 'id' | 'us
 
 export const deleteMeet = async (id: string): Promise<void> => {
   // Delete meet (scores will be cascade deleted)
-  await db.runAsync('DELETE FROM meets WHERE id = ?', [id]);
+  await getDb().runAsync('DELETE FROM meets WHERE id = ?', [id]);
 };
 
 // ========== SCORE OPERATIONS ==========
@@ -392,7 +535,7 @@ export const addScore = async (data: Omit<Score, 'id' | 'createdAt' | 'userId'>)
   const id = generateId();
   const createdAt = Date.now();
 
-  await db.runAsync(
+  await getDb().runAsync(
     `INSERT INTO scores (
       id, meetId, gymnastId, level, vault, bars, beam, floor,
       pommelHorse, rings, parallelBars, highBar, allAround,
@@ -416,25 +559,25 @@ export const addScore = async (data: Omit<Score, 'id' | 'createdAt' | 'userId'>)
 };
 
 export const getScores = async (): Promise<Score[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM scores ORDER BY createdAt DESC');
+  const result = await getDb().getAllAsync<any>('SELECT * FROM scores ORDER BY createdAt DESC');
 
   return result.map(rowToScore);
 };
 
 export const getScoresByGymnast = async (gymnastId: string): Promise<Score[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM scores WHERE gymnastId = ? ORDER BY createdAt DESC', [gymnastId]);
+  const result = await getDb().getAllAsync<any>('SELECT * FROM scores WHERE gymnastId = ? ORDER BY createdAt DESC', [gymnastId]);
 
   return result.map(rowToScore);
 };
 
 export const getScoresByMeet = async (meetId: string): Promise<Score[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM scores WHERE meetId = ? ORDER BY createdAt DESC', [meetId]);
+  const result = await getDb().getAllAsync<any>('SELECT * FROM scores WHERE meetId = ? ORDER BY createdAt DESC', [meetId]);
 
   return result.map(rowToScore);
 };
 
 export const getScoreById = async (id: string): Promise<Score | null> => {
-  const result = await db.getFirstAsync<any>('SELECT * FROM scores WHERE id = ?', [id]);
+  const result = await getDb().getFirstAsync<any>('SELECT * FROM scores WHERE id = ?', [id]);
 
   if (!result) return null;
   return rowToScore(result);
@@ -540,14 +683,14 @@ export const updateScore = async (id: string, data: Partial<Omit<Score, 'id' | '
   if (updates.length === 0) return;
 
   values.push(id);
-  await db.runAsync(
+  await getDb().runAsync(
     `UPDATE scores SET ${updates.join(', ')} WHERE id = ?`,
     values
   );
 };
 
 export const deleteScore = async (id: string): Promise<void> => {
-  await db.runAsync('DELETE FROM scores WHERE id = ?', [id]);
+  await getDb().runAsync('DELETE FROM scores WHERE id = ?', [id]);
 };
 
 // Helper function to convert database row to Score object
@@ -585,7 +728,7 @@ const rowToScore = (row: any): Score => ({
 // ========== STATISTICS & QUERIES ==========
 
 export const getScoreCountByGymnast = async (gymnastId: string): Promise<number> => {
-  const result = await db.getFirstAsync<{ count: number }>(
+  const result = await getDb().getFirstAsync<{ count: number }>(
     'SELECT COUNT(DISTINCT meetId) as count FROM scores WHERE gymnastId = ?',
     [gymnastId]
   );
@@ -593,7 +736,7 @@ export const getScoreCountByGymnast = async (gymnastId: string): Promise<number>
 };
 
 export const getScoreCountByMeet = async (meetId: string): Promise<number> => {
-  const result = await db.getFirstAsync<{ count: number }>(
+  const result = await getDb().getFirstAsync<{ count: number }>(
     'SELECT COUNT(*) as count FROM scores WHERE meetId = ?',
     [meetId]
   );
@@ -642,14 +785,14 @@ export const saveTeamPlacement = async (
   const createdAt = Date.now();
 
   // Check if entry exists
-  const existing = await db.getFirstAsync<any>(
+  const existing = await getDb().getFirstAsync<any>(
     'SELECT id FROM team_placements WHERE meetId = ? AND level = ? AND discipline = ?',
     [meetId, level, discipline]
   );
 
   if (existing) {
     // Update existing
-    await db.runAsync(
+    await getDb().runAsync(
       `UPDATE team_placements SET
         vaultPlacement = ?,
         barsPlacement = ?,
@@ -678,7 +821,7 @@ export const saveTeamPlacement = async (
   } else {
     // Insert new
     const id = generateId();
-    await db.runAsync(
+    await getDb().runAsync(
       `INSERT INTO team_placements (
         id, meetId, level, discipline,
         vaultPlacement, barsPlacement, beamPlacement, floorPlacement,
@@ -708,7 +851,7 @@ export const getTeamPlacement = async (
   level: string,
   discipline: 'Womens' | 'Mens'
 ): Promise<TeamPlacement | null> => {
-  const result = await db.getFirstAsync<any>(
+  const result = await getDb().getFirstAsync<any>(
     'SELECT * FROM team_placements WHERE meetId = ? AND level = ? AND discipline = ?',
     [meetId, level, discipline]
   );
@@ -717,7 +860,7 @@ export const getTeamPlacement = async (
 };
 
 export const getTeamPlacementsByMeet = async (meetId: string): Promise<TeamPlacement[]> => {
-  const result = await db.getAllAsync<any>(
+  const result = await getDb().getAllAsync<any>(
     'SELECT * FROM team_placements WHERE meetId = ?',
     [meetId]
   );
@@ -726,13 +869,13 @@ export const getTeamPlacementsByMeet = async (meetId: string): Promise<TeamPlace
 };
 
 export const deleteTeamPlacement = async (id: string): Promise<void> => {
-  await db.runAsync('DELETE FROM team_placements WHERE id = ?', [id]);
+  await getDb().runAsync('DELETE FROM team_placements WHERE id = ?', [id]);
 };
 
 // ========== DATA EXPORT/IMPORT ==========
 
 export const getAllTeamPlacements = async (): Promise<TeamPlacement[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM team_placements ORDER BY createdAt DESC');
+  const result = await getDb().getAllAsync<any>('SELECT * FROM team_placements ORDER BY createdAt DESC');
   return result.map(rowToTeamPlacement);
 };
 
@@ -748,11 +891,11 @@ export const exportAllData = async (): Promise<{ gymnasts: Gymnast[]; meets: Mee
 export const importAllData = async (data: { gymnasts: any[]; meets: any[]; scores: any[]; teamPlacements?: any[] }): Promise<void> => {
   try {
     // Clear existing data
-    await db.execAsync('DELETE FROM team_placements; DELETE FROM scores; DELETE FROM meets; DELETE FROM gymnasts;');
+    await getDb().execAsync('DELETE FROM team_placements; DELETE FROM scores; DELETE FROM meets; DELETE FROM gymnasts;');
 
     // Import gymnasts
     for (const gymnast of data.gymnasts) {
-      await db.runAsync(
+      await getDb().runAsync(
         `INSERT INTO gymnasts (id, name, dateOfBirth, usagNumber, level, discipline, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -769,7 +912,7 @@ export const importAllData = async (data: { gymnasts: any[]; meets: any[]; score
 
     // Import meets
     for (const meet of data.meets) {
-      await db.runAsync(
+      await getDb().runAsync(
         `INSERT INTO meets (id, name, date, season, location, createdAt)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
@@ -785,7 +928,7 @@ export const importAllData = async (data: { gymnasts: any[]; meets: any[]; score
 
     // Import scores
     for (const score of data.scores) {
-      await db.runAsync(
+      await getDb().runAsync(
         `INSERT INTO scores (
           id, meetId, gymnastId, level, vault, bars, beam, floor,
           pommelHorse, rings, parallelBars, highBar, allAround,
@@ -824,7 +967,7 @@ export const importAllData = async (data: { gymnasts: any[]; meets: any[]; score
     // Import team placements
     if (data.teamPlacements && data.teamPlacements.length > 0) {
       for (const placement of data.teamPlacements) {
-        await db.runAsync(
+        await getDb().runAsync(
           `INSERT INTO team_placements (
             id, meetId, level, discipline,
             vaultPlacement, barsPlacement, beamPlacement, floorPlacement,

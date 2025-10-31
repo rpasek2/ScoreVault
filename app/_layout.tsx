@@ -24,11 +24,12 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
-    // Initialize database on app startup
+    // Initialize default database on app startup (before user authentication)
+    // User-specific database will be loaded by AuthContext when user signs in
     const setupDatabase = async () => {
       try {
-        await initDatabase();
-        console.log('Database initialized successfully');
+        await initDatabase(null); // Initialize default database
+        console.log('Default database initialized successfully');
         setDbInitialized(true);
       } catch (error) {
         console.error('Failed to initialize database:', error);

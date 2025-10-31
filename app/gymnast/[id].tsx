@@ -55,7 +55,7 @@ export default function GymnastProfileScreen() {
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventKey | 'allAround'>('allAround');
-  const [showAllLevels, setShowAllLevels] = useState(false);
+  const [levelFilter, setLevelFilter] = useState<'CURRENT' | 'ALL' | string>('CURRENT');
   const { theme, isDark } = useTheme();
   const { t } = useLanguage();
   const router = useRouter();
@@ -798,10 +798,26 @@ export default function GymnastProfileScreen() {
     }
   };
 
+  // Get unique levels from scores (excluding current level to avoid duplication)
+  const uniqueLevels = Array.from(new Set(scores.map(s => s.level)))
+    .filter(level => level !== gymnast.level)
+    .sort((a, b) => {
+      // Sort levels numerically if they're "Level X" format
+      const aMatch = a.match(/Level (\d+)/);
+      const bMatch = b.match(/Level (\d+)/);
+      if (aMatch && bMatch) {
+        return parseInt(aMatch[1]) - parseInt(bMatch[1]);
+      }
+      return a.localeCompare(b);
+    });
+
   // Filter scores by level
-  const filteredScores = showAllLevels
-    ? scores
-    : scores.filter(s => s.level === gymnast.level);
+  const filteredScores =
+    levelFilter === 'ALL'
+      ? scores
+      : levelFilter === 'CURRENT'
+      ? scores.filter(s => s.level === gymnast.level)
+      : scores.filter(s => s.level === levelFilter);
 
   // Calculate stats from filtered scores
   const totalScores = filteredScores.length;
@@ -986,31 +1002,48 @@ export default function GymnastProfileScreen() {
       </View>
 
       {/* Level Filter */}
-      <View style={styles.levelFilterContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.levelFilterContainer}>
         <Text style={styles.levelFilterButtonText}>{t('gymnasts.show')}:</Text>
         <TouchableOpacity
-          style={[styles.levelFilterButton, !showAllLevels && styles.levelFilterButtonActive]}
+          style={[styles.levelFilterButton, levelFilter === 'CURRENT' && styles.levelFilterButtonActive]}
           onPress={() => {
-            setShowAllLevels(false);
+            setLevelFilter('CURRENT');
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
           activeOpacity={0.7}>
-          <Text style={[styles.levelFilterButtonText, !showAllLevels && styles.levelFilterButtonTextActive]}>
+          <Text style={[styles.levelFilterButtonText, levelFilter === 'CURRENT' && styles.levelFilterButtonTextActive]}>
             {gymnast.level || t('gymnasts.currentLevel')}
           </Text>
         </TouchableOpacity>
+        {uniqueLevels.map(level => (
+          <TouchableOpacity
+            key={level}
+            style={[styles.levelFilterButton, levelFilter === level && styles.levelFilterButtonActive]}
+            onPress={() => {
+              setLevelFilter(level);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            activeOpacity={0.7}>
+            <Text style={[styles.levelFilterButtonText, levelFilter === level && styles.levelFilterButtonTextActive]}>
+              {level}
+            </Text>
+          </TouchableOpacity>
+        ))}
         <TouchableOpacity
-          style={[styles.levelFilterButton, showAllLevels && styles.levelFilterButtonActive]}
+          style={[styles.levelFilterButton, levelFilter === 'ALL' && styles.levelFilterButtonActive]}
           onPress={() => {
-            setShowAllLevels(true);
+            setLevelFilter('ALL');
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
           activeOpacity={0.7}>
-          <Text style={[styles.levelFilterButtonText, showAllLevels && styles.levelFilterButtonTextActive]}>
+          <Text style={[styles.levelFilterButtonText, levelFilter === 'ALL' && styles.levelFilterButtonTextActive]}>
             {t('gymnasts.allLevels')}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       {/* Analytics Section */}
       {filteredScores.length > 0 && (

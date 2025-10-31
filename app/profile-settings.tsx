@@ -17,9 +17,6 @@ import { getInitials, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import * as SQLite from 'expo-sqlite';
-
-const db = SQLite.openDatabaseSync('scorevault.db');
 
 // User profile type for local storage
 interface UserProfile {
@@ -35,46 +32,12 @@ export default function ProfileSettingsScreen() {
   const [photoUri, setPhotoUri] = useState<string | undefined>();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
-    try {
-      // Initialize user_profile table if it doesn't exist
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS user_profile (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
-          displayName TEXT,
-          photoUri TEXT
-        );
-      `);
-
-      // Get user profile
-      const result = await db.getFirstAsync<UserProfile>(
-        'SELECT displayName, photoUri FROM user_profile WHERE id = 1'
-      );
-
-      if (result) {
-        setDisplayName(result.displayName || user?.email?.split('@')[0] || 'User');
-        setPhotoUri(result.photoUri || undefined);
-      } else {
-        // Initialize with email username
-        setDisplayName(user?.email?.split('@')[0] || 'User');
-        await db.runAsync(
-          'INSERT OR REPLACE INTO user_profile (id, displayName, photoUri) VALUES (1, ?, NULL)',
-          [user?.email?.split('@')[0] || 'User']
-        );
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-      setDisplayName(user?.email?.split('@')[0] || 'User');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Just use Firebase user data for now (profile persistence disabled during database refactoring)
+    setDisplayName(user?.email?.split('@')[0] || 'User');
+  }, [user]);
 
   const pickImage = async () => {
     try {
@@ -138,14 +101,12 @@ export default function ProfileSettingsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      await db.runAsync(
-        'INSERT OR REPLACE INTO user_profile (id, displayName, photoUri) VALUES (1, ?, ?)',
-        [displayName.trim(), photoUri || null]
-      );
+      // Note: Profile persistence temporarily disabled during database refactoring
+      // Changes are saved in memory only for this session
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsEditing(false);
-      Alert.alert(t('common.success'), t('settings.profileUpdated'));
+      Alert.alert(t('common.success'), t('settings.profileUpdatedTemporary'));
     } catch (error) {
       console.error('Error saving profile:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

@@ -328,6 +328,26 @@ export default function LevelMeetsScreen() {
       marginBottom: theme.spacing.lg,
       textAlign: 'center'
     },
+    infoTip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? 'rgba(107, 110, 255, 0.1)' : 'rgba(107, 110, 255, 0.08)',
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.primary,
+      padding: theme.spacing.md,
+      borderRadius: theme.borderRadius.md,
+      marginBottom: theme.spacing.lg,
+      gap: theme.spacing.sm
+    },
+    infoTipIcon: {
+      fontSize: 20
+    },
+    infoTipText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textSecondary,
+      flex: 1,
+      lineHeight: 18
+    },
     chartContainer: {
       marginBottom: theme.spacing.lg,
       alignItems: 'center'
@@ -536,6 +556,16 @@ export default function LevelMeetsScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.analyticsSection}>
           <Text style={styles.sectionTitleAnalytics}>{t('teams.performanceAnalytics')}</Text>
+
+          {/* Info banner when not enough data for averages */}
+          {fullTeamMeets.length === 0 && (
+            <View style={styles.infoTip}>
+              <Text style={styles.infoTipIcon}>💡</Text>
+              <Text style={styles.infoTipText}>
+                Team averages will be calculated once at least {countingScoreCount} gymnasts compete in all events at a meet.
+              </Text>
+            </View>
+          )}
 
           {/* Score Progress Chart */}
           {((selectedEvent === 'allAround' && fullTeamMeets.length >= 2) ||

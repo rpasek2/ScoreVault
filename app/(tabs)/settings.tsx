@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Platform, Linking, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Platform, Linking, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,9 +9,7 @@ import { getInitials, UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTutorial } from '@/contexts/TutorialContext';
-import * as SQLite from 'expo-sqlite';
-
-const db = SQLite.openDatabaseSync('scorevault.db');
+import { populateMockData } from '@/scripts/populateMockData';
 
 interface UserProfile {
   displayName?: string;
@@ -25,25 +23,7 @@ export default function SettingsScreen() {
   const { resetTutorial, startTutorial } = useTutorial();
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile>({});
-
-  useFocusEffect(
-    React.useCallback(() => {
-      loadUserProfile();
-    }, [])
-  );
-
-  const loadUserProfile = async () => {
-    try {
-      const result = await db.getFirstAsync<UserProfile>(
-        'SELECT displayName, photoUri FROM user_profile WHERE id = 1'
-      );
-      if (result) {
-        setUserProfile(result);
-      }
-    } catch (error) {
-      console.log('Error loading user profile:', error);
-    }
-  };
+  const [isPopulatingData, setIsPopulatingData] = useState(false);
 
   const handleRateApp = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -118,6 +98,42 @@ export default function SettingsScreen() {
     await resetTutorial();
     startTutorial();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handlePopulateMockData = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    Alert.alert(
+      'Populate Test Data',
+      'This will add sample gymnasts, meets, and scores to your account. This action is for testing purposes only.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        },
+        {
+          text: 'Populate',
+          onPress: async () => {
+            setIsPopulatingData(true);
+            try {
+              const result = await populateMockData();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert(
+                'Success!',
+                `Added ${result.counts.gymnasts} gymnasts, ${result.counts.meets} meets, ${result.counts.scores} scores, and ${result.counts.teamPlacements} team placements.`,
+                [{ text: 'OK' }]
+              );
+            } catch (error: any) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              Alert.alert('Error', error.message || 'Failed to populate mock data');
+            } finally {
+              setIsPopulatingData(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleSignOut = async () => {
@@ -515,6 +531,33 @@ export default function SettingsScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        {/* Only show for test account */}
+        {user?.email === 'googleplay.reviewer@scorevault.app' && (
+          <View style={styles.menuItemWrapper}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handlePopulateMockData}
+              disabled={isPopulatingData}>
+              <LinearGradient
+                colors={theme.colors.cardGradient}
+                style={styles.menuItem}>
+                <View style={styles.menuIconContainer}>
+                  <Text style={styles.menuIcon}>🎲</Text>
+                </View>
+                <View style={styles.menuContent}>
+                  <Text style={styles.menuLabel}>Populate Test Data</Text>
+                  <Text style={styles.menuSubtext}>Add sample gymnasts and meets</Text>
+                </View>
+                {isPopulatingData ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                ) : (
+                  <Text style={styles.chevron}>›</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.menuItemWrapper}>
           <TouchableOpacity

@@ -47,8 +47,9 @@ export const calculateTeamScore = (
       .sort((a, b) => b.score - a.score)
       .slice(0, topCount); // Top N (or fewer if less than N)
 
-    // Sum for team score
-    teamScores[event] = eventScores.reduce((sum, s) => sum + s.score, 0);
+    // Sum for team score and round to avoid floating point errors
+    const eventTotal = eventScores.reduce((sum, s) => sum + s.score, 0);
+    teamScores[event] = Math.round(eventTotal * 1000) / 1000;
 
     // Mark as counting
     eventScores.forEach(s => {
@@ -60,7 +61,10 @@ export const calculateTeamScore = (
     });
   });
 
-  const totalScore = Object.values(teamScores).reduce((sum, s) => sum + s, 0);
+  // Calculate total and round to avoid floating point precision errors
+  const totalScore = Math.round(
+    Object.values(teamScores).reduce((sum, s) => sum + s, 0) * 1000
+  ) / 1000;
 
   return { teamScores, totalScore, countingScores };
 };
