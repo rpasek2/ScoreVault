@@ -4,7 +4,7 @@
 
 ## Overview
 
-ScoreVault ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application.
+ScoreVault, developed by Two Trees Software ("we", "our", or "us"), is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application.
 
 ## Information We Collect
 
@@ -110,5 +110,5 @@ ScoreVault is operated in the United States. By using the app, you consent to th
 
 **Developer Information:**
 - App Name: ScoreVault
-- Developer: Illuvatar
+- Developer: Two Trees Software
 - Package Name: com.illuvatar.ScoreVault
