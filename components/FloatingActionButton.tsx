@@ -7,12 +7,14 @@ interface FABProps {
   onPress: () => void;
   icon?: string;
   color?: string;
+  testID?: string;
 }
 
 export default function FloatingActionButton({
   onPress,
   icon = '+',
-  color = AppTheme.colors.primary
+  color = AppTheme.colors.primary,
+  testID
 }: FABProps) {
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -20,7 +22,10 @@ export default function FloatingActionButton({
   };
 
   return (
-    <TouchableOpacity style={[styles.fab, { backgroundColor: color }]} onPress={handlePress}>
+    <TouchableOpacity
+      style={[styles.fab, { backgroundColor: color }]}
+      onPress={handlePress}
+      testID={testID}>
       <Text style={styles.icon}>{icon}</Text>
     </TouchableOpacity>
   );

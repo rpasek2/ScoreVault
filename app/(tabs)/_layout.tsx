@@ -38,6 +38,7 @@ export default function TabLayout() {
           title: t('tabs.gymnasts'),
           headerTitle: t('tabs.gymnasts'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
+          tabBarTestID: 'tab-gymnasts',
         }}
       />
       <Tabs.Screen
@@ -46,6 +47,7 @@ export default function TabLayout() {
           title: t('tabs.meets'),
           headerTitle: t('tabs.meets'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
+          tabBarTestID: 'tab-meets',
         }}
       />
       <Tabs.Screen
@@ -54,6 +56,7 @@ export default function TabLayout() {
           title: t('tabs.teams'),
           headerTitle: t('tabs.teams'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.3.fill" color={color} />,
+          tabBarTestID: 'tab-teams',
         }}
       />
       <Tabs.Screen
@@ -61,6 +64,7 @@ export default function TabLayout() {
         options={{
           title: t('tabs.settings'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarTestID: 'tab-settings',
         }}
       />
     </Tabs>

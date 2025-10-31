@@ -304,6 +304,8 @@
     "hide": "Hide",
     "contactSupport": "Contact Support",
     "helpFAQ": "Help & FAQ",
+    "showTutorial": "Show Tutorial",
+    "learnTheBasics": "Learn the basics",
     "privacyPolicy": "Privacy Policy",
     "deleteAccount": "Delete My Account",
     "deleteAccountWarning": "This will permanently delete your account and all data. This cannot be undone.",
@@ -668,5 +670,45 @@
     "saveToPhotos": "Save to Photos",
     "noTeamScoresFound": "No team scores found for this meet",
     "createSocialCard": "Create Social Card"
+  },
+  "tutorial": {
+    "welcome": {
+      "title": "Welcome to ScoreVault!",
+      "text": "Your complete gymnastics scoring companion. Track scores, view analytics, and monitor team progress. Let's take a quick tour to get you started!"
+    },
+    "gymnastsTab": {
+      "title": "The Gymnasts Tab",
+      "text": "This is the Gymnasts tab where you'll manage all your athlete profiles. View all your gymnasts, their levels, and recent scores at a glance."
+    },
+    "addGymnast": {
+      "title": "Add Your First Gymnast",
+      "text": "You can add gymnasts using the + button at the bottom right of the Gymnasts screen. Include their name, level, and discipline. You can add more details like photos and USAG numbers later."
+    },
+    "meetsTab": {
+      "title": "The Meets Tab",
+      "text": "Create meets to organize competitions. Each meet tracks scores for all gymnasts who competed. You can view results by meet or by gymnast."
+    },
+    "addScore": {
+      "title": "Record Scores",
+      "text": "Add scores for each event after a competition. The app automatically calculates all-around scores and tracks personal records!"
+    },
+    "teamsTab": {
+      "title": "The Teams Tab",
+      "text": "Team scores are automatically calculated from your gymnasts' scores! View them organized by level and discipline. Tap any meet to add team placements."
+    },
+    "socialCards": {
+      "title": "Share Achievements",
+      "text": "Tap any gymnast to view their scores. On each score card, you'll find a 'Create Social Card' button. Use it to make beautiful shareable graphics for social media!"
+    },
+    "complete": {
+      "title": "You're All Set!",
+      "text": "You're ready to start tracking scores! You can replay this tutorial anytime from Settings → Help. Enjoy using ScoreVault!"
+    },
+    "skip": "Skip Tutorial",
+    "next": "Next",
+    "back": "Back",
+    "getStarted": "Get Started",
+    "done": "Done",
+    "stepOf": "Step {{current}} of {{total}}"
   }
 }

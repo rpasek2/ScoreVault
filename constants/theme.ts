@@ -88,10 +88,13 @@ export const SOFT_SHADOW: ViewStyle =
         shadowOffset: { width: 0, height: 8 }
       };
 
-// Card border for better visibility in light mode
+// Card border for better visibility in both light and dark mode
 export const getCardBorder = (isDark: boolean = false): ViewStyle => {
   if (isDark) {
-    return {};
+    return {
+      borderWidth: 1,
+      borderColor: '#38383A', // Subtle gray border for dark mode
+    };
   }
   return {
     borderWidth: 1.5,

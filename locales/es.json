@@ -304,6 +304,8 @@
     "hide": "Ocultar",
     "contactSupport": "Contactar Soporte",
     "helpFAQ": "Ayuda y Preguntas Frecuentes",
+    "showTutorial": "Mostrar Tutorial",
+    "learnTheBasics": "Aprende lo básico",
     "privacyPolicy": "Política de Privacidad",
     "deleteAccount": "Eliminar Mi Cuenta",
     "deleteAccountWarning": "Esto eliminará permanentemente tu cuenta y todos los datos. Esto no se puede deshacer.",
@@ -668,5 +670,45 @@
     "saveToPhotos": "Guardar en Fotos",
     "noTeamScoresFound": "No se encontraron puntuaciones de equipo para este torneo",
     "createSocialCard": "Crear Tarjeta Social"
+  },
+  "tutorial": {
+    "welcome": {
+      "title": "¡Bienvenido a ScoreVault!",
+      "text": "Tu compañero completo para puntuación de gimnasia. Rastrea puntuaciones, ve análisis y monitorea el progreso del equipo. ¡Hagamos un recorrido rápido para comenzar!"
+    },
+    "gymnastsTab": {
+      "title": "La Pestaña de Gimnastas",
+      "text": "Esta es la pestaña de Gimnastas donde administrarás todos los perfiles de tus atletas. Ve todos tus gimnastas, sus niveles y puntuaciones recientes de un vistazo."
+    },
+    "addGymnast": {
+      "title": "Agrega Tu Primer Gimnasta",
+      "text": "Puedes agregar gimnastas usando el botón + en la esquina inferior derecha de la pantalla de Gimnastas. Incluye su nombre, nivel y disciplina. Puedes agregar más detalles como fotos y números USAG más tarde."
+    },
+    "meetsTab": {
+      "title": "La Pestaña de Torneos",
+      "text": "Crea torneos para organizar competencias. Cada torneo rastrea puntuaciones para todos los gimnastas que compitieron. Puedes ver resultados por torneo o por gimnasta."
+    },
+    "addScore": {
+      "title": "Registra Puntuaciones",
+      "text": "Agrega puntuaciones para cada evento después de una competencia. ¡La aplicación calcula automáticamente las puntuaciones generales y rastrea récords personales!"
+    },
+    "teamsTab": {
+      "title": "La Pestaña de Equipos",
+      "text": "¡Las puntuaciones del equipo se calculan automáticamente desde las puntuaciones de tus gimnastas! Vélas organizadas por nivel y disciplina. Toca cualquier torneo para agregar posiciones del equipo."
+    },
+    "socialCards": {
+      "title": "Comparte Logros",
+      "text": "Toca cualquier gimnasta para ver sus puntuaciones. En cada tarjeta de puntuación, encontrarás un botón de 'Crear Tarjeta Social'. ¡Úsalo para crear hermosos gráficos para compartir en redes sociales!"
+    },
+    "complete": {
+      "title": "¡Todo Listo!",
+      "text": "¡Estás listo para comenzar a rastrear puntuaciones! Puedes repetir este tutorial en cualquier momento desde Configuración → Ayuda. ¡Disfruta usando ScoreVault!"
+    },
+    "skip": "Saltar Tutorial",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "getStarted": "Comenzar",
+    "done": "Hecho",
+    "stepOf": "Paso {{current}} de {{total}}"
   }
 }
