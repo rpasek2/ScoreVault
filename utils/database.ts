@@ -62,6 +62,29 @@ export const switchDatabase = async (userId: string | null) => {
   }
 };
 
+// Delete user's database file
+export const deleteDatabase = async (userId: string): Promise<void> => {
+  try {
+    const dbName = getDatabaseName(userId);
+    console.log('Deleting database:', dbName);
+
+    // Close current database if it's the one being deleted
+    if (db && currentUserId === userId) {
+      db.closeSync();
+      db = null;
+      currentUserId = null;
+      isInitialized = false;
+    }
+
+    // Delete the database file
+    await SQLite.deleteDatabaseAsync(dbName);
+    console.log('Database deleted successfully');
+  } catch (error) {
+    console.error('Error deleting database:', error);
+    throw error;
+  }
+};
+
 // Migrate data from old database to user-specific database
 export const migrateToUserDatabase = async (userId: string) => {
   const oldDbName = 'scorevault.db';
