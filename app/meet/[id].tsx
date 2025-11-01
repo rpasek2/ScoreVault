@@ -759,7 +759,8 @@ export default function MeetDetailScreen() {
             return (
               <TouchableOpacity
                 style={styles.scoreCard}
-                onPress={() => handleScorePress(item.id)}>
+                onPress={() => handleScorePress(item.id)}
+                activeOpacity={0.7}>
                 <View style={styles.gymnastHeader}>
                   <Text style={styles.gymnastName}>{item.gymnastName}</Text>
                   <View style={styles.gymnastInfo}>
