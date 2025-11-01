@@ -2,14 +2,23 @@
   "expo": {
     "name": "ScoreVault",
     "slug": "ScoreVault",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "scorevault",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.illuvatar.ScoreVault",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow ScoreVault to save score cards to your photo library.",
+        "NSPhotoLibraryAddUsageDescription": "Allow ScoreVault to save score cards to your photo library.",
+        "UIBackgroundModes": [],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
