@@ -17,7 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UI_PALETTE, CARD_SHADOW, WOMENS_EVENTS, MENS_EVENTS, EVENT_LABELS } from '@/constants/theme';
 import { Gymnast } from '@/types';
-import { getGymnasts, addScore } from '@/utils/database';
+import { getGymnasts, addScore, getScoresByMeet } from '@/utils/database';
 
 export default function AddScoreScreen() {
   const { meetId } = useLocalSearchParams<{ meetId: string }>();
@@ -60,12 +60,30 @@ export default function AddScoreScreen() {
   const { t } = useLanguage();
   const router = useRouter();
 
-  // Fetch gymnasts
+  // Fetch gymnasts who don't have scores for this meet yet
   useEffect(() => {
     const fetchGymnasts = async () => {
       try {
         const gymnastsList = await getGymnasts();
-        setGymnasts(gymnastsList);
+
+        if (!meetId) {
+          setGymnasts(gymnastsList);
+          setLoadingGymnasts(false);
+          return;
+        }
+
+        // Get all scores for this meet
+        const meetScores = await getScoresByMeet(meetId);
+
+        // Get IDs of gymnasts who already have scores
+        const gymnastIdsWithScores = new Set(meetScores.map(score => score.gymnastId));
+
+        // Filter out gymnasts who already have scores
+        const availableGymnasts = gymnastsList.filter(
+          gymnast => !gymnastIdsWithScores.has(gymnast.id)
+        );
+
+        setGymnasts(availableGymnasts);
       } catch (error) {
         console.error('Error fetching gymnasts:', error);
         Alert.alert(t('common.error'), t('gymnasts.failedToLoadGymnasts'));
@@ -75,7 +93,7 @@ export default function AddScoreScreen() {
     };
 
     fetchGymnasts();
-  }, []);
+  }, [meetId]);
 
   // Update discipline when gymnast is selected
   useEffect(() => {
