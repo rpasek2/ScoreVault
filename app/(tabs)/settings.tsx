@@ -5,8 +5,6 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
-import { deleteUser } from 'firebase/auth';
-import { deleteDatabase } from '@/utils/database';
 import { getInitials, UI_PALETTE, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -162,43 +160,6 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const handleDeleteAccount = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to permanently delete your account? This will delete all your data including gymnasts, scores, and meets. This action cannot be undone.',
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel',
-          onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            try {
-              if (!user) return;
-
-              // Delete local database
-              await deleteDatabase(user.uid);
-
-              // Delete Firebase user account
-              await deleteUser(user);
-
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Account Deleted', 'Your account and all data have been permanently deleted.');
-            } catch (error: any) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert(t('common.error'), error.message || 'Failed to delete account');
-            }
-          }
-        }
-      ]
-    );
-  };
-
   const displayName = userProfile.displayName || user?.email?.split('@')[0] || 'User';
   const email = user?.email || '';
   const photoUri = userProfile.photoUri;
@@ -323,20 +284,6 @@ export default function SettingsScreen() {
     signOutText: {
       ...theme.typography.button,
       color: theme.colors.error,
-      fontWeight: '600'
-    },
-    deleteAccountButton: {
-      padding: theme.spacing.base,
-      marginHorizontal: 15,
-      marginTop: theme.spacing.md,
-      borderRadius: 12,
-      alignItems: 'center',
-      backgroundColor: theme.colors.error,
-      ...CARD_SHADOW
-    },
-    deleteAccountText: {
-      ...theme.typography.button,
-      color: '#FFFFFF',
       fontWeight: '600'
     },
     footer: {
@@ -679,15 +626,6 @@ export default function SettingsScreen() {
           style={styles.signOutButton}>
           <Text style={styles.signOutText}>{t('auth.signOut')}</Text>
         </LinearGradient>
-      </TouchableOpacity>
-
-      {/* Delete Account Button */}
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={handleDeleteAccount}>
-        <View style={styles.deleteAccountButton}>
-          <Text style={styles.deleteAccountText}>Delete Account</Text>
-        </View>
       </TouchableOpacity>
 
       {/* Footer */}

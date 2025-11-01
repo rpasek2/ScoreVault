@@ -13,6 +13,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTutorial } from '@/contexts/TutorialContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Gymnast } from '@/types';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import { getInitials, UI_PALETTE, CARD_SHADOW, getCardBorder } from '@/constants/theme';
@@ -37,6 +39,8 @@ export default function GymnastsScreen() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const { theme, isDark } = useTheme();
   const { t } = useLanguage();
+  const { checkAndStartTutorial } = useTutorial();
+  const { user } = useAuth();
   const router = useRouter();
 
   const fetchGymnastsWithStats = async () => {
@@ -75,6 +79,21 @@ export default function GymnastsScreen() {
   useEffect(() => {
     fetchGymnastsWithStats();
   }, []);
+
+  // Check if tutorial should be shown after user is logged in and screen loads
+  useEffect(() => {
+    const initTutorial = async () => {
+      // Only check tutorial if user is logged in and data has finished loading
+      if (user && !loading) {
+        // Small delay to ensure everything is rendered
+        setTimeout(async () => {
+          await checkAndStartTutorial();
+        }, 500);
+      }
+    };
+
+    initTutorial();
+  }, [user, loading]);
 
   const handleRefresh = () => {
     setRefreshing(true);

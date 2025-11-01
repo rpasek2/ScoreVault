@@ -1142,10 +1142,14 @@ export const restoreFromFirebase = async (userId: string): Promise<{ success: bo
     }
 
     const backupData = backupSnap.data();
-    
+
     if (!backupData.data) {
       return { success: false, error: 'Backup data is corrupted' };
     }
+
+    // CRITICAL: Initialize database for this user before importing data
+    console.log('Initializing database for restore:', userId);
+    await initDatabase(userId);
 
     // Import the backup data
     await importAllData(backupData.data);
