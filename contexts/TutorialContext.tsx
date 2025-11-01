@@ -18,6 +18,7 @@ interface TutorialContextType {
   completeTutorial: () => void;
   resetTutorial: () => void;
   setHighlightedTarget: (target?: string) => void;
+  checkAndStartTutorial: () => Promise<boolean>;
 }
 
 const TutorialContext = createContext<TutorialContextType | undefined>(undefined);
@@ -37,27 +38,23 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     highlightedTarget: undefined
   });
 
-  // Check if tutorial has been completed on mount
-  useEffect(() => {
-    const checkTutorialStatus = async () => {
-      try {
-        const completed = await AsyncStorage.getItem(TUTORIAL_COMPLETED_KEY);
-        const skipped = await AsyncStorage.getItem(TUTORIAL_SKIPPED_KEY);
+  // Check tutorial status - function to be called by screens when appropriate
+  const checkAndStartTutorial = async () => {
+    try {
+      const completed = await AsyncStorage.getItem(TUTORIAL_COMPLETED_KEY);
+      const skipped = await AsyncStorage.getItem(TUTORIAL_SKIPPED_KEY);
 
-        // If not completed or skipped, start tutorial automatically
-        if (!completed && !skipped) {
-          // Small delay to let the app finish loading
-          setTimeout(() => {
-            startTutorial();
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error checking tutorial status:', error);
+      // If not completed or skipped, return true to indicate tutorial should start
+      if (!completed && !skipped) {
+        startTutorial();
+        return true;
       }
-    };
-
-    checkTutorialStatus();
-  }, []);
+      return false;
+    } catch (error) {
+      console.error('Error checking tutorial status:', error);
+      return false;
+    }
+  };
 
   const startTutorial = () => {
     setState({
@@ -147,7 +144,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         skipTutorial,
         completeTutorial,
         resetTutorial,
-        setHighlightedTarget
+        setHighlightedTarget,
+        checkAndStartTutorial
       }}>
       {children}
     </TutorialContext.Provider>
