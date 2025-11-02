@@ -54,3 +54,13 @@ coverage/
 
 # test credentials
 TEST_CREDENTIALS.md
+
+# Firebase configuration files (contain project IDs and API keys)
+google-services.json
+GoogleService-Info.plist
+config/firebase.ts
+
+# Keep template versions for reference
+!google-services.json.template
+!GoogleService-Info.plist.template
+!config/firebase.ts.template
