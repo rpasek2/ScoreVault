@@ -330,7 +330,14 @@
     "noEmail": "No email",
     "aboutYourData": "About Your Data",
     "aboutYourDataDescription": "Your profile information is stored locally on this device. Use Export Data in Settings to backup your profile along with all your gymnast records and scores.",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "populateTestData": "Populate Test Data",
+    "populateTestDataDescription": "This will add sample gymnasts, meets, and scores to your account. This action is for testing purposes only.",
+    "populateTestDataSubtext": "Add sample gymnasts and meets",
+    "populate": "Populate",
+    "populateSuccess": "Success!",
+    "populateSuccessMessage": "Added {{gymnasts}} gymnasts, {{meets}} meets, {{scores}} scores, and {{teamPlacements}} team placements.",
+    "failedToPopulateMockData": "Failed to populate mock data"
   },
   "security": {
     "fillAllPasswordFields": "Please fill in all password fields",
@@ -386,6 +393,7 @@
     "restoreSuccessMessage": "Your data has been restored from the cloud backup. The app will refresh.",
     "restoreFailed": "Restore Failed",
     "restoreError": "An error occurred while restoring your data.",
+    "restoreInitError": "Database initialization error. The restore was attempted twice but failed. Please restart the app and try again.",
     "subtitle": "Secure your data in the cloud for easy device transfers and peace of mind",
     "howItWorks": "How it works",
     "howItWorksDescription": "Your data is stored locally on your device for fast, offline access. Use cloud backup to securely store a copy online, making it easy to restore on a new device or after a reset.",

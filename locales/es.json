@@ -330,7 +330,14 @@
     "noEmail": "Sin correo electrónico",
     "aboutYourData": "Acerca de Tus Datos",
     "aboutYourDataDescription": "Tu información de perfil se almacena localmente en este dispositivo. Usa Exportar Datos en Ajustes para respaldar tu perfil junto con todos tus registros de gimnastas y puntuaciones.",
-    "saveChanges": "Guardar Cambios"
+    "saveChanges": "Guardar Cambios",
+    "populateTestData": "Poblar Datos de Prueba",
+    "populateTestDataDescription": "Esto agregará gimnastas, competencias y puntuaciones de ejemplo a tu cuenta. Esta acción es solo para propósitos de prueba.",
+    "populateTestDataSubtext": "Agregar gimnastas y competencias de ejemplo",
+    "populate": "Poblar",
+    "populateSuccess": "¡Éxito!",
+    "populateSuccessMessage": "Agregados {{gymnasts}} gimnastas, {{meets}} competencias, {{scores}} puntuaciones, y {{teamPlacements}} ubicaciones de equipo.",
+    "failedToPopulateMockData": "Error al poblar datos de prueba"
   },
   "security": {
     "fillAllPasswordFields": "Por favor completa todos los campos de contraseña",
@@ -386,6 +393,7 @@
     "restoreSuccessMessage": "Tus datos han sido restaurados desde el respaldo en la nube. La aplicación se actualizará.",
     "restoreFailed": "Restauración Fallida",
     "restoreError": "Ocurrió un error al restaurar tus datos.",
+    "restoreInitError": "Error de inicialización de base de datos. La restauración se intentó dos veces pero falló. Por favor reinicia la aplicación e intenta nuevamente.",
     "subtitle": "Protege tus datos en la nube para transferencias fáciles entre dispositivos y tranquilidad",
     "howItWorks": "Cómo funciona",
     "howItWorksDescription": "Tus datos se almacenan localmente en tu dispositivo para acceso rápido y sin conexión. Usa el respaldo en la nube para almacenar una copia segura en línea, facilitando la restauración en un nuevo dispositivo o después de un reinicio.",

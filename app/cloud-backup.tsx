@@ -113,7 +113,24 @@ export default function CloudBackupScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
             try {
-              const result = await restoreFromFirebase(user.uid);
+              // First attempt
+              let result = await restoreFromFirebase(user.uid);
+
+              // If first attempt fails with initialization error, retry once
+              if (!result.success && result.error?.includes('initialization')) {
+                console.log('First restore attempt failed with initialization error, retrying...');
+
+                // Wait a moment before retry
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Retry
+                result = await restoreFromFirebase(user.uid);
+
+                // If retry also fails, inform the user
+                if (!result.success) {
+                  console.log('Retry also failed');
+                }
+              }
 
               if (result.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -130,7 +147,15 @@ export default function CloudBackupScreen() {
                 );
               } else {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert(t('backup.restoreFailed'), result.error || t('backup.restoreError'));
+
+                // Provide more helpful error message
+                let errorMessage = result.error || t('backup.restoreError');
+
+                if (errorMessage.includes('initialization')) {
+                  errorMessage = t('backup.restoreInitError');
+                }
+
+                Alert.alert(t('backup.restoreFailed'), errorMessage);
               }
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

@@ -4,9 +4,10 @@
 ScoreVault is a mobile application designed for parents of gymnasts to log, track, and view their child's competition scores across multiple seasons. The app provides an intuitive interface for recording scores, placements, and viewing historical performance data.
 
 ## ✅ Current Status
-**Version**: 1.0 (Beta)
+**Version**: 1.0.6 (versionCode 7)
+**Last Build**: October 31, 2025 at 20:54
 **Architecture**: Local-first with optional cloud backup
-**Platform**: Android (iOS support pending)
+**Platform**: Android (released) & iOS (configured, pending App Store submission)
 
 ## Tech Stack
 
@@ -48,6 +49,8 @@ CREATE TABLE gymnasts (
   usagNumber TEXT,
   level TEXT NOT NULL,
   discipline TEXT NOT NULL,  -- 'Womens' or 'Mens'
+  photoUri TEXT,  -- optional profile photo
+  isHidden INTEGER DEFAULT 0,  -- 0 = visible, 1 = hidden
   createdAt INTEGER NOT NULL
 )
 ```
@@ -96,6 +99,38 @@ CREATE TABLE scores (
   createdAt INTEGER NOT NULL,
   FOREIGN KEY (meetId) REFERENCES meets(id) ON DELETE CASCADE,
   FOREIGN KEY (gymnastId) REFERENCES gymnasts(id) ON DELETE CASCADE
+)
+```
+
+#### team_placements table
+```sql
+CREATE TABLE team_placements (
+  id TEXT PRIMARY KEY,
+  meetId TEXT NOT NULL,
+  level TEXT NOT NULL,
+  discipline TEXT NOT NULL,  -- 'Womens' or 'Mens'
+  vaultPlacement INTEGER,
+  barsPlacement INTEGER,
+  beamPlacement INTEGER,
+  floorPlacement INTEGER,
+  pommelHorsePlacement INTEGER,
+  ringsPlacement INTEGER,
+  parallelBarsPlacement INTEGER,
+  highBarPlacement INTEGER,
+  allAroundPlacement INTEGER,
+  createdAt INTEGER NOT NULL,
+  FOREIGN KEY (meetId) REFERENCES meets(id) ON DELETE CASCADE,
+  UNIQUE(meetId, level, discipline)
+)
+```
+
+#### user_profile table
+```sql
+CREATE TABLE user_profile (
+  id INTEGER PRIMARY KEY CHECK (id = 1),  -- only one profile per database
+  displayName TEXT,
+  photoUri TEXT,
+  updatedAt INTEGER NOT NULL
 )
 ```
 
@@ -167,7 +202,8 @@ backups/{deviceId}
 
 ### Phase 5: Settings & Features ✅ MOSTLY COMPLETE
 - [x] Settings tab with organized sections (Account, Data, App, Support)
-- [x] Profile settings screen
+- [x] Profile settings screen with persistent storage (displayName, photoUri)
+- [x] Hidden gymnasts feature (hide/unhide, separate view)
 - [x] Cloud backup & restore functionality
 - [x] Export data (CSV/JSON)
 - [x] Import data (CSV/JSON)
@@ -178,7 +214,7 @@ backups/{deviceId}
 - [x] Error handling & loading states
 - [x] Empty states with helpful messages
 - [x] Haptic feedback throughout
-- [ ] Privacy & Security settings screen (placeholder exists)
+- [ ] Privacy & Security settings screen (password change, account deletion)
 - [ ] Notifications settings (placeholder exists)
 - [ ] Contact Support functionality (placeholder exists)
 - [ ] Rate App functionality (placeholder exists)
@@ -225,6 +261,19 @@ backups/{deviceId}
 - [x] Coverage reporting setup
 - [x] Test scripts in package.json
 - [x] Total: 90+ comprehensive tests
+
+### Phase 9: iOS Release Configuration ✅ COMPLETE
+- [x] iOS bundle identifier configured (com.illuvatar.ScoreVault)
+- [x] iOS build configuration in eas.json
+- [x] iOS permissions configured (Photo Library)
+- [x] iOS export compliance settings
+- [x] Firebase iOS app configuration (GoogleService-Info.plist)
+- [x] Firebase Android app configuration (google-services.json)
+- [x] iOS app icon verified (1024x1024px)
+- [x] Comprehensive iOS release plan created (IOS_RELEASE_PLAN.md)
+- [x] App Store listing copy prepared
+- [x] Pricing strategy defined ($6.99 one-time purchase)
+- [x] Timeline and budget documented
 
 ## Screen Structure
 
@@ -564,10 +613,11 @@ npm run android
 - ✅ **Phase 2**: SQLite database migration, gymnast management
 - ✅ **Phase 3**: Score entry form, meet management
 - ✅ **Phase 4**: Score display, meets tab
-- ✅ **Phase 5**: Settings screens, data export/import
+- ✅ **Phase 5**: Settings screens, data export/import, profile persistence, hidden gymnasts
 - ✅ **Phase 6**: Cloud backup system
 - ✅ **Phase 7**: Social media score cards with sharing functionality
 - ✅ **Phase 8**: Comprehensive testing infrastructure (90+ tests)
+- ✅ **Phase 9**: iOS release configuration and App Store preparation
 
 ### Remaining for v1.0 (Estimate: 1-2 weeks)
 - **High Priority Items**: Privacy settings, notifications, support features (~5 days)
@@ -639,12 +689,13 @@ npm run android
 - Theme system (light mode implemented)
 
 **Settings & Features** ✅
-- Profile settings
-- Appearance customization
+- User profile with persistent storage (display name, profile photo)
+- Hidden gymnasts management (hide/unhide feature)
+- Appearance customization (light/dark mode)
 - Cloud backup management
 - Help & FAQ
 - Privacy policy
-- Data export/import
+- Data export/import (CSV/JSON)
 
 **Social Sharing** ✅
 - Generate beautiful score cards for social media
@@ -677,5 +728,55 @@ npm run android
 5. **Modern UI**: Polished gradient-based design with haptic feedback
 6. **Social Sharing**: Professional score cards with 10 gradients, 6 icon styles, and customizable backgrounds for social media
 7. **Quality Assurance**: Comprehensive automated test suite (90+ tests) covering utilities, database, and user workflows
+8. **iOS Ready**: Complete iOS configuration with Firebase native SDK, App Store submission plan, and pricing strategy
+9. **User Experience**: Profile persistence, hidden gymnasts feature, team placements tracking
+10. **Multi-Platform**: Single codebase builds for both Android and iOS with native Firebase SDKs
 
-**Status**: ~98% complete for v1.0 release, ready for beta testing
+**Status**: Android v1.0.6 released, iOS configured and ready for App Store submission
+
+---
+
+## Recent Updates (v1.0.6)
+
+**Build Information**:
+- Version: 1.0.6 (versionCode 7)
+- Build Date: October 31, 2025 at 20:54
+- Build Type: Android AAB (Release)
+- Size: 58MB
+- Location: `android/app/build/outputs/bundle/release/app-release.aab`
+
+### Profile Persistence (Post v1.0.6 Build)
+**Issue**: User profile changes (display name, profile photo) were only saved temporarily in memory and lost on app restart.
+
+**Root Cause**:
+- Database schema was missing `user_profile` table
+- Profile settings screen had placeholder code with persistence disabled
+- Migration code referenced the table but it was never created
+
+**Solution Implemented**:
+1. Added `user_profile` table to database schema with `displayName` and `photoUri` fields
+2. Created `getUserProfile()` and `saveUserProfile()` functions in database layer
+3. Updated profile settings screen to load and save profile data persistently
+4. Changes now persist across app restarts for each user's local database
+
+**Files Modified**:
+- `utils/database.ts` - Added table schema and CRUD functions
+- `app/profile-settings.tsx` - Implemented persistent load/save
+- Both English and Spanish translations already had correct success messages
+
+**Note**: This fix requires users to rebuild the app for the database schema changes to take effect.
+
+### Firebase Native SDK Integration (v1.0.6)
+- Switched Android from Firebase Web SDK to native Android SDK (`google-services.json`)
+- Added iOS Firebase configuration (`GoogleService-Info.plist`)
+- Improved performance with native SDKs on both platforms
+
+### iOS Release Preparation (v1.0.6)
+- Complete iOS app configuration in `app.json` and `eas.json`
+- Bundle identifier: `com.illuvatar.ScoreVault`
+- Photo library permissions configured
+- Export compliance documented (no encryption)
+- Comprehensive release plan created (see `IOS_RELEASE_PLAN.md`)
+- App Store listing copy prepared
+- Pricing: $6.99 one-time purchase
+- Timeline: 4-6 weeks from enrollment to launch

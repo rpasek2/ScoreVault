@@ -289,6 +289,16 @@ export const initDatabase = async (userId: string | null = null) => {
       CREATE INDEX IF NOT EXISTS idx_team_placements_level ON team_placements(level);
     `);
 
+    // Create user_profile table
+    await localDb.execAsync(`
+      CREATE TABLE IF NOT EXISTS user_profile (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        displayName TEXT,
+        photoUri TEXT,
+        updatedAt INTEGER NOT NULL
+      );
+    `);
+
     // --- END CRITICAL SECTION ---
 
     // ONLY set the global variables at the very end when everything is 100% ready
@@ -896,6 +906,63 @@ export const deleteTeamPlacement = async (id: string): Promise<void> => {
   await getDb().runAsync('DELETE FROM team_placements WHERE id = ?', [id]);
 };
 
+// ========== USER PROFILE ==========
+
+export interface UserProfile {
+  displayName?: string;
+  photoUri?: string;
+}
+
+export const getUserProfile = async (): Promise<UserProfile> => {
+  try {
+    const result = await getDb().getFirstAsync<any>(
+      'SELECT displayName, photoUri FROM user_profile WHERE id = 1'
+    );
+
+    if (!result) {
+      return {};
+    }
+
+    return {
+      displayName: result.displayName || undefined,
+      photoUri: result.photoUri || undefined
+    };
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return {};
+  }
+};
+
+export const saveUserProfile = async (profile: UserProfile): Promise<void> => {
+  try {
+    const updatedAt = Date.now();
+
+    // Check if profile exists
+    const existing = await getDb().getFirstAsync<any>(
+      'SELECT id FROM user_profile WHERE id = 1'
+    );
+
+    if (existing) {
+      // Update existing profile
+      await getDb().runAsync(
+        'UPDATE user_profile SET displayName = ?, photoUri = ?, updatedAt = ? WHERE id = 1',
+        [profile.displayName || null, profile.photoUri || null, updatedAt]
+      );
+    } else {
+      // Insert new profile
+      await getDb().runAsync(
+        'INSERT INTO user_profile (id, displayName, photoUri, updatedAt) VALUES (1, ?, ?, ?)',
+        [profile.displayName || null, profile.photoUri || null, updatedAt]
+      );
+    }
+
+    console.log('User profile saved successfully');
+  } catch (error) {
+    console.error('Error saving user profile:', error);
+    throw error;
+  }
+};
+
 // ========== DATA EXPORT/IMPORT ==========
 
 export const getAllTeamPlacements = async (): Promise<TeamPlacement[]> => {
@@ -1133,6 +1200,8 @@ export const restoreFromFirebase = async (userId: string): Promise<{ success: bo
       throw new Error('User ID is required for restore');
     }
 
+    console.log('Starting restore for userId:', userId);
+
     // Fetch backup from Firestore using userId
     const backupRef = doc(firestore, 'backups', userId);
     const backupSnap = await getDoc(backupRef);
@@ -1147,9 +1216,24 @@ export const restoreFromFirebase = async (userId: string): Promise<{ success: bo
       return { success: false, error: 'Backup data is corrupted' };
     }
 
-    // CRITICAL: Initialize database for this user before importing data
-    console.log('Initializing database for restore:', userId);
-    await initDatabase(userId);
+    // CRITICAL: Ensure database is properly initialized for this specific user
+    // Use switchDatabase to force a clean initialization if needed
+    console.log('Ensuring database is ready for restore. Current user:', currentUserId, 'Target user:', userId);
+
+    if (currentUserId !== userId || !db || !isInitialized) {
+      console.log('Switching to target user database for restore');
+      await switchDatabase(userId);
+    }
+
+    // Wait a bit to ensure database is fully ready
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Verify database is actually ready
+    if (!db || !isInitialized) {
+      throw new Error('Database failed to initialize properly');
+    }
+
+    console.log('Database ready, importing data');
 
     // Import the backup data
     await importAllData(backupData.data);
@@ -1158,7 +1242,17 @@ export const restoreFromFirebase = async (userId: string): Promise<{ success: bo
     return { success: true, timestamp: backupData.timestamp };
   } catch (error: any) {
     console.error('Restore failed:', error);
-    return { success: false, error: error.message || 'Restore failed' };
+    const errorMessage = error.message || 'Restore failed';
+
+    // Provide more helpful error messages
+    if (errorMessage.includes('NullPointerException') || errorMessage.includes('Database not initialized')) {
+      return {
+        success: false,
+        error: 'Database initialization error. Please try again in a moment.'
+      };
+    }
+
+    return { success: false, error: errorMessage };
   }
 };
 

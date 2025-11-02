@@ -104,29 +104,34 @@ export default function SettingsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     Alert.alert(
-      'Populate Test Data',
-      'This will add sample gymnasts, meets, and scores to your account. This action is for testing purposes only.',
+      t('settings.populateTestData'),
+      t('settings.populateTestDataDescription'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         },
         {
-          text: 'Populate',
+          text: t('settings.populate'),
           onPress: async () => {
             setIsPopulatingData(true);
             try {
               const result = await populateMockData();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert(
-                'Success!',
-                `Added ${result.counts.gymnasts} gymnasts, ${result.counts.meets} meets, ${result.counts.scores} scores, and ${result.counts.teamPlacements} team placements.`,
-                [{ text: 'OK' }]
+                t('settings.populateSuccess'),
+                t('settings.populateSuccessMessage', {
+                  gymnasts: result.counts.gymnasts,
+                  meets: result.counts.meets,
+                  scores: result.counts.scores,
+                  teamPlacements: result.counts.teamPlacements
+                }),
+                [{ text: t('common.ok') }]
               );
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Error', error.message || 'Failed to populate mock data');
+              Alert.alert(t('common.error'), error.message || t('settings.failedToPopulateMockData'));
             } finally {
               setIsPopulatingData(false);
             }
@@ -546,8 +551,8 @@ export default function SettingsScreen() {
                   <Text style={styles.menuIcon}>🎲</Text>
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuLabel}>Populate Test Data</Text>
-                  <Text style={styles.menuSubtext}>Add sample gymnasts and meets</Text>
+                  <Text style={styles.menuLabel}>{t('settings.populateTestData')}</Text>
+                  <Text style={styles.menuSubtext}>{t('settings.populateTestDataSubtext')}</Text>
                 </View>
                 {isPopulatingData ? (
                   <ActivityIndicator size="small" color={theme.colors.primary} />

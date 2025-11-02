@@ -17,12 +17,7 @@ import { getInitials, CARD_SHADOW } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-
-// User profile type for local storage
-interface UserProfile {
-  displayName?: string;
-  photoUri?: string;
-}
+import { getUserProfile, saveUserProfile, UserProfile } from '@/utils/database';
 
 export default function ProfileSettingsScreen() {
   const { theme, isDark } = useTheme();
@@ -32,11 +27,28 @@ export default function ProfileSettingsScreen() {
   const [photoUri, setPhotoUri] = useState<string | undefined>();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load user profile from database
+  const loadUserProfile = async () => {
+    try {
+      setIsLoading(true);
+      const profile = await getUserProfile();
+
+      // Use saved profile if available, otherwise fall back to email
+      setDisplayName(profile.displayName || user?.email?.split('@')[0] || 'User');
+      setPhotoUri(profile.photoUri);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      // Fall back to email if profile loading fails
+      setDisplayName(user?.email?.split('@')[0] || 'User');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Just use Firebase user data for now (profile persistence disabled during database refactoring)
-    setDisplayName(user?.email?.split('@')[0] || 'User');
+    loadUserProfile();
   }, [user]);
 
   const pickImage = async () => {
@@ -101,12 +113,15 @@ export default function ProfileSettingsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      // Note: Profile persistence temporarily disabled during database refactoring
-      // Changes are saved in memory only for this session
+      // Save profile to database
+      await saveUserProfile({
+        displayName: displayName.trim(),
+        photoUri
+      });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsEditing(false);
-      Alert.alert(t('common.success'), t('settings.profileUpdatedTemporary'));
+      Alert.alert(t('common.success'), t('settings.profileUpdated'));
     } catch (error) {
       console.error('Error saving profile:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
