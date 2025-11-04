@@ -272,7 +272,7 @@ backups/{deviceId}
 - [x] iOS app icon verified (1024x1024px)
 - [x] Comprehensive iOS release plan created (IOS_RELEASE_PLAN.md)
 - [x] App Store listing copy prepared
-- [x] Pricing strategy defined ($6.99 one-time purchase)
+- [x] Pricing strategy defined ($2.99 launch price, planned increases to $4.99)
 - [x] Timeline and budget documented
 
 ## Screen Structure
@@ -778,5 +778,5 @@ npm run android
 - Export compliance documented (no encryption)
 - Comprehensive release plan created (see `IOS_RELEASE_PLAN.md`)
 - App Store listing copy prepared
-- Pricing: $6.99 one-time purchase
+- Pricing: $2.99 launch price (strategy: increase to $3.99 → $4.99 after market validation)
 - Timeline: 4-6 weeks from enrollment to launch

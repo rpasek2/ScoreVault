@@ -1,8 +1,9 @@
 # ScoreVault iOS Release Plan
 
-**Version:** 1.0.5
+**Version:** 1.0.6
 **Target Release:** 4-6 weeks from start
 **Budget:** $99 Apple Developer + $29/month EAS Build = $128 first month
+**Launch Price:** $2.99 (planned increases: $3.99 → $4.99 after market validation)
 
 ---
 
@@ -144,9 +145,17 @@ eas build --platform ios --profile production
 
 ### Pricing and Availability
 
-- [ ] **Price:** $6.99 USD (Tier 7)
+- [ ] **Price:** $2.99 USD (Tier 3)
   - One-time purchase, no subscriptions
+  - Launch pricing strategy: Start low to build user base and reviews
+  - Plan to raise to $3.99-$4.99 after establishing market presence
   - Emphasize "No subscription required!" in marketing
+
+**Pricing Strategy:**
+- **Phase 1 (Launch):** $2.99 - Build reviews and user base (2-3 months)
+- **Phase 2:** $3.99 - After 50+ reviews, test higher price point (1-2 months)
+- **Phase 3:** $4.99 - Long-term sustainable price
+- **Future:** Add auto-import feature, potentially charge $6.99 for premium version
 
 - [ ] **Availability:** All territories
 
@@ -223,8 +232,8 @@ PERFECT FOR:
 ✓ Club administrators
 ✓ Anyone involved in gymnastics scoring
 
-💰 ONE-TIME PURCHASE
-Pay once, use forever. No subscriptions, no recurring fees, no hidden costs. Just $6.99 for lifetime access to all features.
+💰 ONE-TIME PURCHASE - LAUNCH PRICE
+Pay once, use forever. No subscriptions, no recurring fees, no hidden costs. Just $2.99 for lifetime access to all features. Launch price - may increase after initial release.
 
 📱 DESIGNED FOR iOS
 • Native iOS experience
@@ -530,7 +539,7 @@ The app is designed for the gymnastics community and follows standard USA Gymnas
 - [ ] Keywords finalized
 - [ ] Privacy details declared
 - [ ] Age rating complete
-- [ ] Pricing set ($6.99)
+- [ ] Pricing set ($2.99 launch price)
 - [ ] Support URL working
 - [ ] Privacy Policy URL working
 - [ ] Demo account credentials working
