@@ -1,19 +1,34 @@
 # ScoreVault 📊
 
-A mobile application for parents to track and manage their gymnast's competition scores across multiple seasons.
+**Version 1.0.6** - A mobile application for parents and coaches to track and manage gymnast competition scores across multiple seasons.
 
 ## Overview
 
 ScoreVault is a local-first mobile app designed for gymnastics parents and coaches who want to keep detailed records of individual gymnast scores and team performance. Track competition results, placements, and analytics over time. Built with React Native and Expo, the app works completely offline and offers optional cloud backup.
 
+**Platform Support:**
+- ✅ Android (Released on Google Play)
+- ✅ iOS (Configured, ready for App Store submission)
+
+**Key Highlights:**
+- 🏆 90+ automated tests with comprehensive coverage
+- 🌐 Full bilingual support (English/Spanish)
+- 📱 Works 100% offline with optional cloud sync
+- 🎨 Beautiful gradient-based UI with haptic feedback
+- 🔒 Secure local-first architecture with encrypted cloud backup
+- 📊 Advanced team scoring analytics
+- 🎯 Single codebase for Android and iOS
+
 ## Features
 
 ### Core Functionality ✅
-- **Gymnast Management**: Add, edit, and manage multiple gymnasts with details including level, discipline (Women's/Men's), USAG number, and date of birth
+- **Gymnast Management**: Add, edit, and manage multiple gymnasts with details including level, discipline (Women's/Men's), USAG number, date of birth, and profile photos
+- **Hidden Gymnasts**: Hide inactive gymnasts while preserving all their data, easily unhide when needed
 - **Score Tracking**: Record detailed scores for all gymnastics events with automatic all-around calculation
 - **Meet Management**: Organize competitions by season with location and date tracking
 - **Performance Analytics**: View trends, averages, and personal records for each event
 - **Team Scoring**: Track team scores by level and discipline with analytics, event breakdowns, and counting score visualization
+- **Team Placements**: Record and track team placement positions for each event and all-around
 - **Dual Discipline Support**: Full support for both Women's and Men's gymnastics scoring
 
 ### Data Management ✅
@@ -34,11 +49,14 @@ ScoreVault is a local-first mobile app designed for gymnastics parents and coach
 - **Professional Design**: Placement badges, enhanced typography, celebration-focused layout
 
 ### User Experience ✅
+- **User Profile**: Persistent profile with custom display name and profile photo
+- **Bilingual Support**: Full English and Spanish translations
 - **Gradient-Based Design**: Modern, polished UI with beautiful gradients throughout
 - **Haptic Feedback**: Tactile feedback for all interactions
 - **Theme Support**: Light mode (dark mode infrastructure exists)
 - **Empty States**: Helpful guidance when getting started
 - **Level Filtering**: View scores for current level or all levels
+- **Onboarding Tutorial**: Interactive tutorial for first-time users
 
 ### Testing & Quality ✅
 - **Comprehensive Test Suite**: 90+ automated tests
@@ -90,10 +108,9 @@ npm install
 ```
 
 2. Configure Firebase:
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-   - Enable Email/Password authentication
-   - Create a Firestore database
-   - Copy your Firebase config to `config/firebase.ts`
+   - See `FIREBASE_SETUP.md` for complete Firebase configuration instructions
+   - Create Firebase project, enable Email/Password authentication, create Firestore database
+   - Download and configure `google-services.json` (Android), `GoogleService-Info.plist` (iOS), and `config/firebase.ts` (Web)
 
 3. Start the development server:
 ```bash
@@ -173,7 +190,7 @@ ScoreVault/
 ### SQLite (Local Storage)
 
 **gymnasts**
-- id, name, dateOfBirth, usagNumber, level, discipline, createdAt
+- id, name, dateOfBirth, usagNumber, level, discipline, photoUri, isHidden, createdAt
 
 **meets**
 - id, name, date, season, location, createdAt
@@ -184,6 +201,18 @@ ScoreVault/
 - allAround (calculated)
 - Placements for each event
 - createdAt
+
+**team_placements**
+- id, meetId, level, discipline
+- Team placements: vault, bars, beam, floor (Women's) / floor, pommelHorse, rings, vault, parallelBars, highBar (Men's)
+- allAroundPlacement
+- createdAt
+
+**user_profile**
+- id (always 1), displayName, photoUri, updatedAt
+
+**app_settings**
+- key, value (used for device ID and backup info)
 
 ### Firestore (Cloud Backup Only)
 
@@ -247,13 +276,43 @@ This is a personal project, but suggestions and bug reports are welcome via GitH
 
 Private project - All rights reserved
 
+## Documentation
+
+- **`README.md`** (this file) - Overview and getting started guide
+- **`PROJECT_PLAN.md`** - Detailed feature documentation and development roadmap
+- **`FIREBASE_SETUP.md`** - Firebase configuration instructions
+- **`IOS_RELEASE_PLAN.md`** - iOS App Store submission plan
+- **`IMPORT_EXPORT_GUIDE.md`** - Data import/export format specifications
+
+## Recent Updates
+
+### Version 1.0.6 (November 2025)
+- **Profile Persistence**: User profile (display name, photo) now saves permanently
+- **Backup Restore Improvements**: Enhanced error handling with automatic retry logic
+- **Security**: Removed Firebase credentials from repository, added setup templates
+- **Translations**: Complete bilingual support (English/Spanish)
+- **iOS Ready**: Full iOS configuration and App Store preparation complete
+
+## Roadmap
+
+### Upcoming Features
+- Dark mode support
+- Password change functionality
+- Account deletion
+- Push notifications for meet reminders
+- Advanced analytics and reporting
+- Multi-child family accounts
+
 ## Support
 
 For questions or issues:
+- Check `FIREBASE_SETUP.md` for Firebase configuration help
 - Check `IMPORT_EXPORT_GUIDE.md` for data format help
 - Review `PROJECT_PLAN.md` for detailed feature documentation
-- Contact: [Your contact info]
+- Report issues on GitHub
 
 ---
 
 **ScoreVault** - Track your gymnastics journey 🎯
+
+Made with ❤️ for gymnastics families
